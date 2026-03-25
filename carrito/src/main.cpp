@@ -1,39 +1,94 @@
 #include <Arduino.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
+#define echo 4
+#define trig 5
+unsigned long duracion;
+int distancia;
+long ultima_medicion=0;
 
-void setup() {
-  // Iniciamos la comunicación serie a 115200 baudios
-  Serial.begin(115200);
+const char* ssid= "INFINITUM2059";
+const char* password = "kzcSZ5TaC3";
+const char* mqttServer = "broker.hivemq.com";
+
+WiFiClient espClient; // duda
+PubSubClient client(espClient); // duda
+void recibirAlerta(char* topic, byte* payload, unsigned int length){// duda en los parametros
+  Serial.print("mensaje del tema : ");
+  Serial.println(topic);
+  String mensaje = "";
   
-  // Damos un pequeño respiro para darte tiempo de abrir el Monitor Serie
-  delay(3000); 
-
-  Serial.println("\n--- Test de Memoria YD-ESP32-S3 N16R8 ---");
-
-  // 1. Verificar tamaño de memoria Flash (Donde se guarda el código)
-  uint32_t flashSize = ESP.getFlashChipSize();
-  Serial.print("Tamaño de Flash detectado: ");
-  Serial.print(flashSize / (1024 * 1024));
-  Serial.println(" MB");
-
-  // 2. Verificar tamaño de memoria PSRAM (La RAM extra)
-  uint32_t psramSize = ESP.getPsramSize();
-  Serial.print("Tamaño de PSRAM detectado: ");
-  if (psramSize > 0) {
-    Serial.print(psramSize / (1024 * 1024));
-    Serial.println(" MB");
-  } else {
-    Serial.println("0 MB (¡PSRAM no detectada! Revisa tu platformio.ini)");
+  for(int i = 0 ; i< length; i++){
+    mensaje += (char)payload[i];
   }
-
-  // 3. Verificar la RAM interna libre
-  Serial.print("RAM interna libre (SRAM): ");
-  Serial.print(ESP.getFreeHeap() / 1024);
-  Serial.println(" KB");
-  
-  Serial.println("-----------------------------------------");
+  Serial.print(mensaje);
+  if (mensaje == "DETENER"){
+    Serial.println(" hey you cant park there");
+  }
+}
+void setup_wifi(){
+  delay(10);
+  Serial.print("Conectando a ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi conectado.");
+}
+void reconnect(){// duda
+  while(!client.connected()){// duda
+      Serial.print("intentando volver a conectar a MQTT");
+      String clientId = "ESP32TeamRC";// duda
+      clientId +=String(random(0,0xffff), HEX);// duda
+    
+    if(client.connect(clientId.c_str())){// duda
+      Serial.println("conectao");
+      client.subscribe("mi_carrito/alerta");// duda
+    }else {
+      Serial.print("fallo , rc= ");// duda
+      Serial.print(client.state());// duda
+      delay(5000);
+    }
+  }
+}
+int distCm(){
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig, LOW);
+  duracion = pulseIn(echo, HIGH,30000);
+  // Cálculo de la distancia
+  distancia = (duracion * 0.034) / 2;
+  if (distancia== 0){
+    distancia = 500;
+  }
+  return distancia;
+}
+void setup(){
+  pinMode(echo, INPUT);
+  pinMode(trig, OUTPUT);
+  Serial.begin(115200);
+  setup_wifi();
+  client.setServer(mqttServer, 1883);//duda
+  client.setCallback(recibirAlerta);//duda
+}
+void loop(){
+  if(!client.connected()){
+    reconnect();
+  }
+  client.loop();//duda
+  long ahora=millis();//duda
+  if (ahora-ultima_medicion>1000){//duda
+    ultima_medicion = ahora;//duda
+    int distancia_actual= distCm();
+    Serial.print("enviando distancia: ");
+    Serial.println(distancia_actual);
+    char distString[8];//duda
+    itoa(distancia_actual, distString, 10);//duda
+    client.publish("mi_carrito/distancia", distString);//duda
+  }
 }
 
-void loop() {
-  // No necesitamos hacer nada cíclico para esta prueba
-  delay(10000);
-}
