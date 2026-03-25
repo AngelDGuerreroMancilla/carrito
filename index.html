@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Carrito ESP32</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f9; padding: 50px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 4px 8px rgba(0,0,0,0.1); display: inline-block; }
+        #estado { color: orange; font-weight: bold; }
+        #distancia { font-size: 48px; font-weight: bold; color: #333; margin: 20px 0; }
+        .alerta { color: red !important; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Monitor del Carrito</h2>
+        <p>Estado MQTT: <span id="estado">Conectando...</span></p>
+        
+        <h3>Distancia Actual:</h3>
+        <div id="distancia">-- cm</div>
+
+        <p id="mensaje_alerta"></p>
+    </div>
+
+    <script>
+        // 1. Configuración del Broker (HiveMQ Público Seguro)
+        const broker = "broker.hivemq.com";
+        const puerto = 8884; // Puerto seguro (WSS) requerido por GitHub Pages
+        const clientId = "WebClient-" + Math.random().toString(16).substr(2, 8);
+
+        // 2. Crear el cliente MQTT
+        const client = new Paho.MQTT.Client(broker, puerto, clientId);
+
+        // 3. Configurar qué pasa cuando se pierde la conexión
+        client.onConnectionLost = function(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                document.getElementById("estado").innerText = "Desconectado";
+                document.getElementById("estado").style.color = "red";
+                console.log("Conexión perdida: " + responseObject.errorMessage);
+            }
+        };
+
+        // 4. Configurar qué pasa cuando llega un mensaje del ESP32
+        client.onMessageArrived = function(message) {
+            if(message.destinationName === "mi_carrito/distancia") {
+                let dist = parseInt(message.payloadString);
+                let divDistancia = document.getElementById("distancia");
+                let divAlerta = document.getElementById("mensaje_alerta");
+                
+                divDistancia.innerText = dist + " cm";
+
+                // --- LÓGICA DEL SERVIDOR ---
+                // Si la distancia es menor a 20 cm, mandamos la alerta al ESP32
+                if(dist > 0 && dist < 20) {
+                    divDistancia.className = "alerta";
+                    divAlerta.innerText = "¡Obstáculo cerca! Enviando orden de DETENER...";
+                    divAlerta.style.color = "red";
+                    
+                    enviarAlerta("DETENER");
+                } else {
+                    divDistancia.className = "";
+                    divAlerta.innerText = "Camino libre.";
+                    divAlerta.style.color = "green";
+                }
+            }
+        };
+
+        // Función para enviar la alerta de regreso al ESP32
+        function enviarAlerta(comando) {
+            let mensaje = new Paho.MQTT.Message(comando);
+            mensaje.destinationName = "mi_carrito/alerta";
+            client.send(mensaje);
+        }
+
+        // 5. Conectar al Broker
+        let opciones = {
+            useSSL: true, // Muy importante para GitHub Pages
+            onSuccess: function() {
+                document.getElementById("estado").innerText = "Conectado";
+                document.getElementById("estado").style.color = "green";
+                console.log("Conectado a MQTT!");
+                
+                // Nos suscribimos al tema para escuchar al ESP32
+                client.subscribe("mi_carrito/distancia");
+            },
+            onFailure: function(message) {
+                document.getElementById("estado").innerText = "Error al conectar";
+                document.getElementById("estado").style.color = "red";
+                console.log("Falló conexión: " + message.errorMessage);
+            }
+        };
+
+        // Iniciar la conexión
+        client.connect(opciones);
+    </script>
+
+</body>
+</html>
