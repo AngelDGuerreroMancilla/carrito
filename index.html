@@ -4,38 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Control - Carrito ESP32</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f9; padding: 50px; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 4px 8px rgba(0,0,0,0.1); display: inline-block; }
-        #estado { color: orange; font-weight: bold; }
-        #distancia { font-size: 48px; font-weight: bold; color: #333; margin: 20px 0; }
-        .alerta { color: red !important; }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script> 
 </head>
 <body>
 
-    <div class="card">
+    <div>
         <h2>Monitor del Carrito</h2>
-        <p>Estado MQTT: <span id="estado">Conectando...</span></p>
+        <p>Estado MQTT: <span id="estado" style="font-weight: bold; color: orange;">Conectando...</span></p>
         
         <h3>Distancia Actual:</h3>
-        <div id="distancia">-- cm</div>
+        <div id="distancia" style="font-size: 24px; font-weight: bold; color: blue;">-- cm</div>
 
-        <p id="mensaje_alerta"></p>
+        <p id="mensaje_alerta" style="color: red; font-weight: bold;"></p>
     </div>
 
     <script>
-        // 1. Configuración del Broker (HiveMQ Público Seguro)
+        // 1. Configuración del Broker
         const broker = "broker.hivemq.com";
-        const puerto = 8884; // Puerto seguro (WSS) requerido por GitHub Pages
+        const puerto = 8884; // Usamos un puerto web seguro (WSS)
         const clientId = "WebClient-" + Math.random().toString(16).substr(2, 8);
 
-        // 2. Crear el cliente MQTT
-        const client = new Paho.MQTT.Client(broker, puerto, clientId);
+        // 2. Crear el cliente MQTT para la web
+        const client = new Paho.MQTT.Client(broker, puerto, clientId); 
 
-        // 3. Configurar qué pasa cuando se pierde la conexión
-        client.onConnectionLost = function(responseObject) {
+        // 3. Qué hacer si se cae el internet
+        client.onConnectionLost = function(responseObject) { 
             if (responseObject.errorCode !== 0) {
                 document.getElementById("estado").innerText = "Desconectado";
                 document.getElementById("estado").style.color = "red";
@@ -43,48 +36,52 @@
             }
         };
 
-        // 4. Configurar qué pasa cuando llega un mensaje del ESP32
+        // 4. Qué hacer cuando llega un mensaje del ESP32
         client.onMessageArrived = function(message) {
-            if(message.destinationName === "mi_carrito/distancia") {
-                let dist = parseInt(message.payloadString);
-                let divDistancia = document.getElementById("distancia");
-                let divAlerta = document.getElementById("mensaje_alerta");
+            // CORRECCIÓN: Escuchamos el canal por donde habla el ESP32
+            if(message.destinationName === "mi_carrito/web/sensor") { 
                 
-                divDistancia.innerText = dist + " cm";
-
-                // --- LÓGICA DEL SERVIDOR ---
-                // Si la distancia es menor a 20 cm, mandamos la alerta al ESP32
-                if(dist > 0 && dist < 20) {
-                    divDistancia.className = "alerta";
-                    divAlerta.innerText = "¡Obstáculo cerca! Enviando orden de DETENER...";
-                    divAlerta.style.color = "red";
-                    
-                    enviarAlerta("DETENER");
-                } else {
-                    divDistancia.className = "";
-                    divAlerta.innerText = "Camino libre.";
-                    divAlerta.style.color = "green";
-                }
+                // Convertimos el texto (duración) que llega a número entero
+                let dur = parseInt(message.payloadString);
+                calcDistSens(dur);
             }
         };
 
-        // Función para enviar la alerta de regreso al ESP32
-        function enviarAlerta(comando) {
+        function calcDistSens(dur){
+            let distSensUlt = Math.ceil(dur * 0.0343 / 2);
+            
+            // ¡NUEVO!: Actualizamos la pantalla de tu web para ver el número
+            document.getElementById("distancia").innerText = distSensUlt + " cm";
+
+            // Lógica visual extra: Mostrar alerta en la web si está muy cerca
+            if(distSensUlt <= 20) {
+                document.getElementById("mensaje_alerta").innerText = "¡ALERTA! Obstáculo cerca.";
+            } else {
+                document.getElementById("mensaje_alerta").innerText = ""; // Borramos la alerta
+            }
+          
+            // Le respondemos al ESP32 con la distancia ya calculada
+            envDatos("sensor", distSensUlt.toString());
+        }
+
+        // Función para hablarle de vuelta al ESP32
+        function envDatos(topic, comando) {
             let mensaje = new Paho.MQTT.Message(comando);
-            mensaje.destinationName = "mi_carrito/alerta";
+            // Esto mandará el mensaje a "mi_carrito/esp32/sensor"
+            mensaje.destinationName = `mi_carrito/esp32/${topic}`; 
             client.send(mensaje);
         }
 
-        // 5. Conectar al Broker
+        // 5. Opciones y ejecución de la conexión
         let opciones = {
-            useSSL: true, // Muy importante para GitHub Pages
+            useSSL: true, 
             onSuccess: function() {
                 document.getElementById("estado").innerText = "Conectado";
                 document.getElementById("estado").style.color = "green";
                 console.log("Conectado a MQTT!");
                 
-                // Nos suscribimos al tema para escuchar al ESP32
-                client.subscribe("mi_carrito/distancia");
+                // CORRECCIÓN: Nos suscribimos al canal donde el ESP32 manda la duración
+                client.subscribe("mi_carrito/web/sensor"); 
             },
             onFailure: function(message) {
                 document.getElementById("estado").innerText = "Error al conectar";
@@ -93,7 +90,7 @@
             }
         };
 
-        // Iniciar la conexión
+        // Dar la orden final de conectar
         client.connect(opciones);
     </script>
 

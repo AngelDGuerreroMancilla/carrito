@@ -3,6 +3,12 @@
 #include <PubSubClient.h>
 #define echo 4
 #define trig 5
+
+#define drvIn1 6
+#define drvIn2 7
+#define drvIn3 15
+#define drvIn4 16
+
 unsigned long duracion;
 int distancia;
 long ultima_medicion=0;
@@ -11,21 +17,46 @@ const char* ssid= "INFINITUM2059";
 const char* password = "kzcSZ5TaC3";
 const char* mqttServer = "broker.hivemq.com";
 
-WiFiClient espClient; // duda
-PubSubClient client(espClient); // duda
-void recibirAlerta(char* topic, byte* payload, unsigned int length){// duda en los parametros
+WiFiClient espClient;
+PubSubClient client(espClient); 
+
+
+
+
+void controlSensor( int distSensUlt){
+  if (distSensUlt <= 20){
+    digitalWrite(drvIn1, HIGH);
+    digitalWrite(drvIn2, HIGH);
+    digitalWrite(drvIn3, HIGH);
+    digitalWrite(drvIn4, HIGH);
+    
+  }else{
+    digitalWrite(drvIn2, LOW);
+    analogWrite(drvIn1, 2000); //4095 velocidad max
+    digitalWrite(drvIn4, LOW);
+    analogWrite(drvIn3, 2000); //4095 velocidad max
+  }
+  
+}
+
+//escucha todos los mensajes que llegan del broaker
+//aqui llegan los topicos, dependiendo de los topicos vamos a ejecutar las funciones correspondientes.
+void recibirAlerta(char* topic, byte* payload, unsigned int length){
   Serial.print("mensaje del tema : ");
   Serial.println(topic);
-  String mensaje = "";
+  String msjSensUlt = "";
   
   for(int i = 0 ; i< length; i++){
-    mensaje += (char)payload[i];
+    msjSensUlt += (char)payload[i];
   }
-  Serial.print(mensaje);
-  if (mensaje == "DETENER"){
-    Serial.println(" hey you cant park there");
+  if (strcmp(topic, "mi_carrito/esp32/sensor") == 0) {
+    int distSensUlt= msjSensUlt.toInt();
+    controlSensor(distSensUlt);
   }
 }
+
+
+// se conecta a la red declarada anteriormente
 void setup_wifi(){
   delay(10);
   Serial.print("Conectando a ");
@@ -37,58 +68,77 @@ void setup_wifi(){
   }
   Serial.println("\nWiFi conectado.");
 }
-void reconnect(){// duda
-  while(!client.connected()){// duda
+
+//crea un id de cliente del broacker de ESP32TeamRC mas numeros random 
+//quedando algo como ESP32TeamRC-A1B2
+// se conecta al broaker y si se desconecta se reconecta
+void reconnect(){
+  while(!client.connected()){
       Serial.print("intentando volver a conectar a MQTT");
-      String clientId = "ESP32TeamRC";// duda
-      clientId +=String(random(0,0xffff), HEX);// duda
+      String clientId = "ESP32TeamRC";
+      clientId +=String(random(0,0xffff), HEX);
     
-    if(client.connect(clientId.c_str())){// duda
+    if(client.connect(clientId.c_str())){
       Serial.println("conectao");
-      client.subscribe("mi_carrito/alerta");// duda
+      client.subscribe("mi_carrito/esp32/#");
     }else {
-      Serial.print("fallo , rc= ");// duda
-      Serial.print(client.state());// duda
+      Serial.print("fallo , rc= ");
+      Serial.print(client.state());
       delay(5000);
     }
   }
 }
-int distCm(){
+
+
+void envSig(String topic, String sig){
+    
+    Serial.print("enviando duracion: ");
+    Serial.println(sig);
+    String topico="mi_carrito/web/";
+    topico+= topic;
+    client.publish(topico.c_str(), sig.c_str());
+  
+}
+void envSensUlt(){ 
   digitalWrite(trig, LOW);
   delayMicroseconds(2);
   digitalWrite(trig, HIGH);
   delayMicroseconds(10);
   digitalWrite(trig, LOW);
   duracion = pulseIn(echo, HIGH,30000);
-  // Cálculo de la distancia
-  distancia = (duracion * 0.034) / 2;
-  if (distancia== 0){
-    distancia = 500;
+  if(duracion == 0 ){
+    duracion = 500;
   }
-  return distancia;
+  char durString[8];
+
+  itoa(duracion, durString, 10);
+  envSig("sensor", durString);
 }
+
+
 void setup(){
   pinMode(echo, INPUT);
   pinMode(trig, OUTPUT);
+  pinMode(drvIn1, OUTPUT);
+  pinMode(drvIn2, OUTPUT);
+  pinMode(drvIn3, OUTPUT);
+  pinMode(drvIn4, OUTPUT);
   Serial.begin(115200);
   setup_wifi();
-  client.setServer(mqttServer, 1883);//duda
-  client.setCallback(recibirAlerta);//duda
+  client.setServer(mqttServer, 1883);
+  client.setCallback(recibirAlerta);
 }
+
+
 void loop(){
   if(!client.connected()){
     reconnect();
   }
-  client.loop();//duda
-  long ahora=millis();//duda
-  if (ahora-ultima_medicion>1000){//duda
-    ultima_medicion = ahora;//duda
-    int distancia_actual= distCm();
-    Serial.print("enviando distancia: ");
-    Serial.println(distancia_actual);
-    char distString[8];//duda
-    itoa(distancia_actual, distString, 10);//duda
-    client.publish("mi_carrito/distancia", distString);//duda
+  client.loop();
+  long ahora=millis();
+  if (ahora-ultima_medicion>1000){
+    ultima_medicion = ahora;
+    envSensUlt();
   }
 }
 
