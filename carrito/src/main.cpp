@@ -29,12 +29,14 @@ void controlSensor( int distSensUlt){
     digitalWrite(drvIn2, HIGH);
     digitalWrite(drvIn3, HIGH);
     digitalWrite(drvIn4, HIGH);
+    Serial.println("freno Activado");
     
   }else{
     digitalWrite(drvIn2, LOW);
     analogWrite(drvIn1, 2000); //4095 velocidad max
     digitalWrite(drvIn4, LOW);
     analogWrite(drvIn3, 2000); //4095 velocidad max
+    Serial.println("avanzando");
   }
   
 }
