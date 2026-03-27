@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <sensor.h>
 #define echo 4
 #define trig 5
 
@@ -21,24 +22,26 @@ WiFiClient espClient;
 PubSubClient client(espClient); 
 
 
-
-
 void controlSensor( int distSensUlt){
   if (distSensUlt <= 20){
-    digitalWrite(drvIn1, HIGH);
-    digitalWrite(drvIn2, HIGH);
-    digitalWrite(drvIn3, HIGH);
-    digitalWrite(drvIn4, HIGH);
-    Serial.println("freno Activado");
+    
+    analogWrite(drvIn1, 0); 
+    digitalWrite(drvIn2, LOW);
+    
+    analogWrite(drvIn3, 0);
+    digitalWrite(drvIn4, LOW);
+    
+    Serial.println("Freno Activado (Motores apagados)");
     
   }else{
+    
     digitalWrite(drvIn2, LOW);
-    analogWrite(drvIn1, 2000); //4095 velocidad max
-    digitalWrite(drvIn4, LOW);
-    analogWrite(drvIn3, 2000); //4095 velocidad max
-    Serial.println("avanzando");
+    analogWrite(drvIn1, 200); // velocidad 
+    
+    analogWrite(drvIn3, 200); // velocidad 
+    
+    Serial.println("Avanzando");
   }
-  
 }
 
 //escucha todos los mensajes que llegan del broaker
@@ -51,10 +54,10 @@ void recibirAlerta(char* topic, byte* payload, unsigned int length){
   for(int i = 0 ; i< length; i++){
     msjSensUlt += (char)payload[i];
   }
-  if (strcmp(topic, "mi_carrito/esp32/sensor") == 0) {
-    int distSensUlt= msjSensUlt.toInt();
-    controlSensor(distSensUlt);
-  }
+  // if (strcmp(topic, "mi_carrito/esp32/sensor") == 0) { 
+  //   int distSensUlt= msjSensUlt.toInt();
+  //   controlSensor(distSensUlt);
+  // }
 }
 
 
@@ -92,29 +95,29 @@ void reconnect(){
 }
 
 
-void envSig(String topic, String sig){
+// void envSig(String topic, String sig){
     
-    Serial.print("enviando duracion: ");
-    Serial.println(sig);
-    String topico="mi_carrito/web/";
-    topico+= topic;
-    client.publish(topico.c_str(), sig.c_str());
+//     Serial.print("enviando duracion: ");
+//     Serial.println(sig);
+//     String topico="mi_carrito/web/";
+//     topico+= topic;
+//     client.publish(topico.c_str(), sig.c_str());
   
-}
-void envSensUlt(){ 
+// }
+void distCm(){ 
   digitalWrite(trig, LOW);
   delayMicroseconds(2);
   digitalWrite(trig, HIGH);
   delayMicroseconds(10);
   digitalWrite(trig, LOW);
   duracion = pulseIn(echo, HIGH,30000);
+  
+  int distCm = (duracion * 0.0343/ 2 );
   if(duracion == 0 ){
-    duracion = 500;
+    distCm = 500;
   }
-  char durString[8];
-
-  itoa(duracion, durString, 10);
-  envSig("sensor", durString);
+  controlSensor(distCm);
+  
 }
 
 
@@ -138,9 +141,9 @@ void loop(){
   }
   client.loop();
   long ahora=millis();
-  if (ahora-ultima_medicion>1000){
+  if (ahora-ultima_medicion>100){
     ultima_medicion = ahora;
-    envSensUlt();
+    distCm();
   }
 }
 

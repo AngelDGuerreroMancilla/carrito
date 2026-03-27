@@ -48,7 +48,7 @@
         };
 
         function calcDistSens(dur){
-            let distSensUlt = Math.ceil(dur * 0.0343 / 2);
+            let distSensUlt = Math.ceil(dur * / 20.0343 );
             
             // ¡NUEVO!: Actualizamos la pantalla de tu web para ver el número
             document.getElementById("distancia").innerText = distSensUlt + " cm";
@@ -63,7 +63,7 @@
             // Le respondemos al ESP32 con la distancia ya calculada
             envDatos("sensor", distSensUlt.toString());
         }
-
+    
         // Función para hablarle de vuelta al ESP32
         function envDatos(topic, comando) {
             let mensaje = new Paho.MQTT.Message(comando);
