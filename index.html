@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script> 
 </head>
 <body>
-
+    
     <div>
         <h2>Monitor del Carrito</h2>
         <p>Estado MQTT: <span id="estado" style="font-weight: bold; color: orange;">Conectando...</span></p>
@@ -17,7 +17,13 @@
 
         <p id="mensaje_alerta" style="color: red; font-weight: bold;"></p>
     </div>
-
+    <div style="text-align: center; margin-top: 50px;">
+    <canvas id="joystickCanvas" width="200" height="200" style="background-color: #f0f0f0; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"></canvas>
+    
+    <h3 style="font-family: sans-serif;">
+        Eje X: <span id="valorX">0</span> | Eje Y: <span id="valorY">0</span>
+    </h3>
+</div>
     <script>
         // 1. Configuración del Broker
         const broker = "broker.hivemq.com";
@@ -52,7 +58,7 @@
             
             // ¡NUEVO!: Actualizamos la pantalla de tu web para ver el número
             document.getElementById("distancia").innerText = distSensUlt + " cm";
-
+            
             // Lógica visual extra: Mostrar alerta en la web si está muy cerca
             if(distSensUlt <= 20) {
                 document.getElementById("mensaje_alerta").innerText = "¡ALERTA! Obstáculo cerca.";
@@ -92,7 +98,9 @@
 
         // Dar la orden final de conectar
         client.connect(opciones);
-    </script>
 
+        
+    </script>
+    <script src="/joystick.js"></script>
 </body>
 </html>
