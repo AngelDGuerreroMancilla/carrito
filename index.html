@@ -17,6 +17,10 @@
 
         <p id="mensaje_alerta" style="color: red; font-weight: bold;"></p>
     </div>
+    <div>
+        <h2>Modo seguidor de lineas</h2>
+        <button id="btnSegLin">Desactivado</button>
+    </div>
     <div style="text-align: center; margin-top: 50px;">
     <canvas id="joystickCanvas" width="200" height="200" style="background-color: #f0f0f0; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"></canvas>
     
@@ -25,6 +29,26 @@
     </h3>
 </div>
     <script>
+       
+
+             let btnSegLin= document.getElementById("btnSegLin");
+
+
+        btnSegLin.addEventListener("click",() =>{
+
+            if(btnSegLin.textContent =="Desactivado"){
+                btnSegLin.innerText="Activado";
+                envDatos("seguidorLineas", "1");
+                console.log("env1");
+            }
+            else if(btnSegLin.textContent== "Activado"){
+                btnSegLin.innerText="Desactivado";
+                envDatos("seguidorLineas", "0");
+                console.log("env0");
+            }
+        })
+            
+        
         // 1. Configuración del Broker
         const broker = "broker.hivemq.com";
         const puerto = 8884; // Usamos un puerto web seguro (WSS)
@@ -76,6 +100,7 @@
             // Esto mandará el mensaje a "mi_carrito/esp32/sensor"
             mensaje.destinationName = `mi_carrito/esp32/${topic}`; 
             client.send(mensaje);
+            console.log("enviado")
         }
 
         // 5. Opciones y ejecución de la conexión
@@ -100,7 +125,8 @@
         client.connect(opciones);
 
         
+        
     </script>
-    <script src="joystick.js"></script>
+    <script src="./joystick.js"></script>
 </body>
 </html>

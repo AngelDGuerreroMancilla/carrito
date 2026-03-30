@@ -53,7 +53,7 @@ function actualizarPosicion(clientX, clientY) {
     let envio = `${valX.toString()},${valY.toString()}`;
     
     envDatos("joystick", envio )
-    
+     console.log(`enviando ${envio}`)
     // AQUÍ ES DONDE ENVIARÍAS POR MQTT
     // Ejemplo: enviarDatosMQTT(valX, valY);
 }
@@ -80,6 +80,7 @@ function soltar() {
 
     let envioCeros= "0,0";
     envDatos("joystick", envioCeros );
+    console.log(`enviando ${envioCeros}`)
     // Enviar señal de parar al ESP32
     // Ejemplo: enviarDatosMQTT(0, 0);
 }
