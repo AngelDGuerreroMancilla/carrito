@@ -43,8 +43,8 @@ function actualizarPosicion(clientX, clientY) {
     stickY = centroY + distancia * Math.sin(angulo);
 
     // Calcular valores de -100 a 100 (Invertimos Y para que Arriba sea positivo)
-    let valX = Math.round((stickX - centroX) / (radioBase - radioStick) * 100);
-    let valY = Math.round((stickY - centroY) / (radioBase - radioStick) * -100); 
+    let valX = Math.round((stickX - centroX) / (radioBase - radioStick) * 500);
+    let valY = Math.round((stickY - centroY) / (radioBase - radioStick) * -500); 
 
     coordX.innerText = valX;
     coordY.innerText = valY;

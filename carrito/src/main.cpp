@@ -99,11 +99,11 @@ void contrlJoy(int ejeX, int ejeY){
   int velDer= ejeX +ejeY;
   int velIzq=ejeY-ejeX;
 
-  velIzq= constrain(velIzq, -100,100);
-  velDer = constrain(velDer, -100, 100);
+  velIzq= constrain(velIzq, -500,500);
+  velDer = constrain(velDer, -500, 500);
 
-  int pwmIzq = map(abs(velIzq), 0, 100, 0, 1000);
-  int pwmDer = map(abs(velDer), 0, 100, 0, 1000);
+  int pwmIzq = map(abs(velIzq), 0, 500, 0, 3000);
+  int pwmDer = map(abs(velDer), 0, 500, 0, 3000);
 
 
   if (velIzq>10){
