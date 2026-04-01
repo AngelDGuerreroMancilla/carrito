@@ -13,8 +13,7 @@
 #define lin1 17
 #define lin2 18
 #define lin3 8
-#define lin4 3
-#define lin5 46
+
 
 
 
@@ -22,6 +21,7 @@ unsigned long duracion;
 int distancia;
 long ultima_medicion=0;
 bool modSegLin = false;
+
 
 
 const char* ssid= "INFINITUM2059";
@@ -56,44 +56,52 @@ PubSubClient client(espClient);
 
 
 void movDel(){
-  analogWrite(drvIn1,200);
+  analogWrite(drvIn1,50);
   analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,200);
+  analogWrite(drvIn3,50);
   analogWrite(drvIn4,0); 
 }
-void movAtras(){
-  analogWrite(drvIn1,0);
-  analogWrite(drvIn2, 200);
-  analogWrite(drvIn3,0);
-  analogWrite(drvIn4,200); 
-}
+// void movAtras(){
+//   analogWrite(drvIn1,0);
+//   analogWrite(drvIn2, 75);
+//   analogWrite(drvIn3,0);
+//   analogWrite(drvIn4,75); 
+// }
 void movIzq(){
   analogWrite(drvIn1,0);
   analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,200);
+  analogWrite(drvIn3,50);
   analogWrite(drvIn4,0); 
 }
 void movDer(){
-  analogWrite(drvIn1,200);
+  analogWrite(drvIn1,50);
   analogWrite(drvIn2, 0);
   analogWrite(drvIn3,0);
   analogWrite(drvIn4,0); 
 }
-void movDelDer(){
-  analogWrite(drvIn1,200);
-  analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,100);
-  analogWrite(drvIn4,0); 
+// void movDelDer(){
+//   analogWrite(drvIn1,100);
+//   analogWrite(drvIn2, 0);
+//   analogWrite(drvIn3,50);
+//   analogWrite(drvIn4,0); 
 
+// // }
+// void movDelIzq(){
+//   analogWrite(drvIn1,50);
+//   analogWrite(drvIn2, 0);
+//   analogWrite(drvIn3,100);
+//   analogWrite(drvIn4,0); 
+
+// }
+void apagar(){
+ 
+  analogWrite(drvIn1, 0);
+  analogWrite(drvIn2, 0); 
+  
+ 
+  analogWrite(drvIn3, 0);
+  analogWrite(drvIn4, 0); 
 }
-void movDelIzq(){
-  analogWrite(drvIn1,100);
-  analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,200);
-  analogWrite(drvIn4,0); 
-
-}
-
 
 void contrlJoy(int ejeX, int ejeY){
   int velDer= ejeX +ejeY;
@@ -149,23 +157,31 @@ void coordenadas(String mensaje){
   }
 }
 void contrLineas(){
-  bool extIzq = digitalRead(lin1);
-  bool midIzq = digitalRead(lin2);
-  bool mid = digitalRead(lin3);
-  bool midDer= digitalRead(lin4);
-  bool extDer= digitalRead(lin5);
+  int izq = digitalRead(lin1);
+  int mid = digitalRead(lin2);
+  int der = digitalRead(lin3);
+
 
   
-  if(extIzq && !midIzq &&  !mid && !midDer && !extDer) 
-  movIzq();
-  if(!extIzq && midIzq &&  !mid && !midDer && !extDer) 
-  movDelIzq();
-  if(!extIzq && !midIzq &&  mid && !midDer && !extDer) 
-  movDel();
-  if(!extIzq && !midIzq &&  !mid && midDer && !extDer) 
-  movDelDer();
-  if(!extIzq && !midIzq &&  !mid && !midDer && extDer) 
-  movDer();
+  if(mid ==1 ) {
+    movDel();
+    Serial.println("medio");
+  }
+ 
+  else if(izq ==1) {
+    movIzq();
+    Serial.println("izq");
+  }
+  
+  else if(der == 1 ) {
+    movDer();
+    Serial.println("der");
+  }else{
+    
+    apagar();
+    Serial.println("apagado");
+  }
+  
   
 }
 
@@ -197,12 +213,28 @@ void setup_wifi(){
   delay(10);
   Serial.print("Conectando a ");
   Serial.println(ssid);
+  Serial.flush();
+  
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  
+  int intentos = 0;
+  int max_intentos = 20; // 10 segundos max
+  
+  while (WiFi.status() != WL_CONNECTED && intentos < max_intentos) {
     delay(500);
     Serial.print(".");
+    Serial.flush();
+    intentos++;
   }
-  Serial.println("\nWiFi conectado.");
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nWiFi conectado.");
+    Serial.print("IP: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("\nNo se conectó a WiFi - continuando sin red");
+  }
 }
 
 //crea un id de cliente del broacker de ESP32TeamRC mas numeros random 
@@ -259,11 +291,18 @@ void setup(){
   pinMode(drvIn2, OUTPUT);
   pinMode(drvIn3, OUTPUT);
   pinMode(drvIn4, OUTPUT);
+  pinMode(lin1, INPUT);
+  pinMode(lin2, INPUT);
+  pinMode(lin3, INPUT);
+ 
   Serial.begin(115200);
+  
+  delay(2000);
+  Serial.println("¡Consola Serial funcionando!");
   setup_wifi();
+  
   client.setServer(mqttServer, 1883);
   client.setCallback(recibirAlerta);
-  analogWriteResolution(10);
 }
 
 
@@ -271,13 +310,15 @@ void loop(){
   if(!client.connected()){
     reconnect();
   }
+
+  if(modSegLin== 1){
+      contrLineas();
+  }
   client.loop();
   long ahora=millis();
   if (ahora-ultima_medicion>100){
     ultima_medicion = ahora;
     // distCm();
-    if(modSegLin== 1){
-      contrLineas();
-    }
+   
   }
 }

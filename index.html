@@ -22,6 +22,8 @@
         <button id="btnSegLin">Desactivado</button>
     </div>
     <div style="text-align: center; margin-top: 50px;">
+        <h2>modo Manual con joystick</h2>
+        <button id="btnModMan">Activado</button>
     <canvas id="joystickCanvas" width="200" height="200" style="background-color: #f0f0f0; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"></canvas>
     
     <h3 style="font-family: sans-serif;">
@@ -31,20 +33,31 @@
     <script>
        
 
-             let btnSegLin= document.getElementById("btnSegLin");
-
+        let btnSegLin= document.getElementById("btnSegLin");
+        let btnModMan=document.getElementById("btnModMan");
+        btnModMan.addEventListener("click",() =>{
+            if(btnModMan.textContent== "Desactivado"){
+                btnModMan.innerText="Activado";
+                envDatos("modMan", "1");
+                console.log("modo Manual activado");
+            }else if(btnModMan.textContent=="Activado"){    
+                btnModMan.innerText="Desactivado";
+                envDatos("modMan", "0");
+                console.log("modo manual desactivado")
+            }
+        })
 
         btnSegLin.addEventListener("click",() =>{
 
             if(btnSegLin.textContent =="Desactivado"){
                 btnSegLin.innerText="Activado";
                 envDatos("seguidorLineas", "1");
-                console.log("env1");
+                console.log("seguidor de lineas ACTIVADO");
             }
             else if(btnSegLin.textContent== "Activado"){
                 btnSegLin.innerText="Desactivado";
                 envDatos("seguidorLineas", "0");
-                console.log("env0");
+                console.log("seguidor de lineas DESACTIVADO");
             }
         })
             
