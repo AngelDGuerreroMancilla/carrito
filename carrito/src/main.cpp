@@ -19,9 +19,22 @@
 
 
 unsigned long duracion;
-int distancia;
 long ultima_medicion=0;
-bool modSegLin = false;
+int modSegLin = 0;
+
+#define DIST_OBSTACULO 15
+
+enum EstadoEvasion {
+  SIGUIENDO_LINEA,
+  DETENIDO,
+  GIRANDO_DERECHA,
+  AVANZANDO,
+  GIRANDO_IZQUIERDA,
+  BUSCANDO_LINEA
+};
+
+EstadoEvasion estadoActual = SIGUIENDO_LINEA;
+unsigned long tiempoEstado = 0;
 
 
 const char* ssid= "INFINITUM2059";
@@ -53,6 +66,26 @@ PubSubClient client(espClient);
 //     Serial.println("Avanzando");
 //   }
 // }
+
+// Mide la distancia en cm con el sensor ultrasónico
+int medirDistancia() {
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig, LOW);
+  duracion = pulseIn(echo, HIGH, 30000);
+  if (duracion == 0) return 500:
+  return (duracion * 0.0343 / 2);
+}
+
+// Detiene los 2 motores
+void detenerMotores() {
+  analogWrite(drvIn1, 0);
+  analogWrite(drvIn2, 0);
+  analogWrite(drvIn3, 0);
+  analogWrite(drvIn4, 0);
+}
 
 
 void movDel(){
@@ -169,6 +202,81 @@ void contrLineas(){
   
 }
 
+// Retorna true si cualquier sensor IR detecta la línea
+bool lineaDetectada() {
+  return digitalRead(lin1) || digitalRead(lin2) || digitalRead(lin3) ||
+         digitalRead(lin4) || digitalRead(lin5);
+}
+
+// Máquina de estados para modo autónomo con evasión de obstáculos
+void modoAutonomo() {
+  unsigned long ahora = millis();
+
+  switch (estadoActual) {
+    case SIGUIENDO_LINEA: {
+      int dist = medirDistancia();
+      if (dist <= DIST_OBSTACULO) {
+        detenerMotores();
+        estadoActual = DETENIDO;
+        tiempoEstado = ahora;
+        Serial.println("Obstaculo detectado! Deteniendo...");
+      } else {
+        contrLineas();
+      }
+      break;
+    }
+
+    case DETENIDO:
+      detenerMotores();
+      if (ahora - tiempoEstado >= 200) {
+        estadoActual = GIRANDO_DERECHA;
+        tiempoEstado = ahora;
+        Serial.println("Girando a la derecha...");
+      }
+      break;
+
+    case GIRANDO_DERECHA:
+      movDer();
+      if (ahora - tiempoEstado >= 400) {
+        estadoActual = AVANZANDO;
+        tiempoEstado = ahora;
+        Serial.println("Avanzando para pasar obstaculo...");
+      }
+      break;
+
+    case AVANZANDO:
+      movDel();
+      if (ahora - tiempoEstado >= 500) {
+        estadoActual = GIRANDO_IZQUIERDA;
+        tiempoEstado = ahora;
+        Serial.println("Girando a la izquierda...");
+      }
+      break;
+
+    case GIRANDO_IZQUIERDA:
+      movIzq();
+      if (ahora - tiempoEstado >= 400) {
+        estadoActual = BUSCANDO_LINEA;
+        tiempoEstado = ahora;
+        Serial.println("Buscando linea...");
+      }
+      break;
+
+    case BUSCANDO_LINEA:
+      movDelIzq();
+      if (lineaDetectada()) {
+        estadoActual = SIGUIENDO_LINEA;
+        Serial.println("Linea encontrada! Reanudando seguimiento.");
+      } else if (ahora - tiempoEstado >= 2000) {
+        // Timeout: girar más a la izquierda para buscar la línea
+        estadoActual = GIRANDO_IZQUIERDA;
+        tiempoEstado = ahora;
+        Serial.println("Timeout buscando linea, girando mas...");
+      }
+      break;
+  }
+}
+
 
 //escucha todos los mensajes que llegan del broaker
 //aqui llegan los topicos, dependiendo de los topicos vamos a ejecutar las funciones correspondientes.
@@ -186,6 +294,11 @@ void recibirAlerta(char* topic, byte* payload, unsigned int length){
   }
   if(strcmp(topic,"mi_carrito/esp32/seguidorLineas" )== 0){
     modSegLin = msj.toInt();
+    if(modSegLin == 1){
+      estadoActual = SIGUIENDO_LINEA; // resetea la máquina de estados al activar
+    } else {
+      detenerMotores(); // frena al desactivar modo autónomo
+    }
   }
 }
 
@@ -259,6 +372,11 @@ void setup(){
   pinMode(drvIn2, OUTPUT);
   pinMode(drvIn3, OUTPUT);
   pinMode(drvIn4, OUTPUT);
+  pinMode(lin1, INPUT);
+  pinMode(lin2, INPUT);
+  pinMode(lin3, INPUT);
+  pinMode(lin4, INPUT);
+  pinMode(lin5, INPUT);
   Serial.begin(115200);
   setup_wifi();
   client.setServer(mqttServer, 1883);
@@ -277,7 +395,7 @@ void loop(){
     ultima_medicion = ahora;
     // distCm();
     if(modSegLin== 1){
-      contrLineas();
+      modoAutonomo();
     }
   }
 }
