@@ -1,9 +1,16 @@
 #include <TinyGPS++.h>
 #include "gps.h"
 #include "broaker.h"
+#include "motores.h"
 
 
 TinyGPSPlus gps;
+
+double lat ;
+double lng;
+double latDestino = 0.0;
+double lngDestino = 0.0;
+
 void estadoGps() {
  
   static long ultimo_estado_gps = 0;
@@ -29,8 +36,8 @@ void estadoGps() {
 void envPos(){
   if(gps.location.isValid() && gps.location.isUpdated()){
 
-    double lat = gps.location.lat();
-    double lng = gps.location.lng();
+    lat = gps.location.lat();
+    lng = gps.location.lng();
         
     Serial.print("Latitud: "); Serial.println(lat, 6);
     Serial.print("Longitud: "); Serial.println(lng, 6);
@@ -42,3 +49,52 @@ void envPos(){
     envSig("lng", lngEnv);
   }
 }
+
+
+
+void direccionamiento(){
+
+  if (latDestino == 0.0 || !gps.location.isValid()) {
+    return; 
+  }
+
+double dist=gps.distanceBetween(lat,lng,latDestino,lngDestino);
+double gradDes= gps.courseTo(lat,lng,latDestino,lngDestino);
+
+double gradAct= gps.course.deg();
+
+
+if (dist<=2 ){
+  apagar();
+  Serial.println("llegada a objetivo, esta a menos de 2M");
+  latDestino=0.0;
+  return;
+}
+
+
+
+  double errorGiro= gradDes-gradAct;
+
+
+  if (errorGiro > 180){
+    errorGiro -= 360;
+  }
+  if(errorGiro < -180){
+    errorGiro += 360;
+  }
+
+  if(abs(errorGiro)<15){
+    movDel();
+    Serial.println("gps mov adelante");
+
+  }else if(errorGiro>0){
+    movDer();
+    Serial.println("gps mov derecha");
+
+  }else {
+    movIzq();
+    Serial.println("gps mov izquierda");
+  }
+
+}
+

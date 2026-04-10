@@ -49,6 +49,7 @@ bool gpsIsActive= 0;
 
 
 
+
 // void controlSensor( int distSensUlt){
 //   if (distSensUlt <= 20){
     
@@ -181,10 +182,7 @@ void recibirAlerta(char* topic, byte* payload, unsigned int length){
     calibracion= msj.toInt();
     if (calibracion== 1){
       calibrar();
-    }else{
-      
     }
- 
   }
   if(strcmp(topic, "mi_carrito/esp32/kp")== 0){
     kp= msj.toFloat();
@@ -211,7 +209,6 @@ void recibirAlerta(char* topic, byte* payload, unsigned int length){
     Serial.print("gps "); Serial.println(msj.toInt());
   }
   if (strcmp(topic, "mi_carrito/esp32/dest") == 0) { 
-    double latDestino, lngDestino; 
     
     if (separarTextoComa(msj, latDestino, lngDestino)) {
       
@@ -274,14 +271,18 @@ void loop(){
     reconnect();
   }
   if(gpsIsActive) {
+    estadoGps();
     while(Serial2.available() > 0) {
       if (gps.encode(Serial2.read())) {
        
         envPos(); 
+        
+        direccionamiento();
+
       }
     }
   }
-  estadoGps();
+  
 
   if(modSegLin== 1){
       contrLineas();

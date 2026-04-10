@@ -1,39 +1,39 @@
 #include "motores.h"
 void movDel(){
-  analogWrite(drvIn1,120);
+  analogWrite(drvIn1,3000);
   analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,100);
+  analogWrite(drvIn3,3000);
   analogWrite(drvIn4,0); 
 }
 void movAtras(){
   analogWrite(drvIn1,0);
-  analogWrite(drvIn2, 75);
+  analogWrite(drvIn2, 100);
   analogWrite(drvIn3,0);
-  analogWrite(drvIn4,75); 
+  analogWrite(drvIn4,100); 
 }
 void movIzq(){
   analogWrite(drvIn1,0);
   analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,100);
+  analogWrite(drvIn3,3000);
   analogWrite(drvIn4,0); 
 }
 void movDer(){
-  analogWrite(drvIn1,100);
+  analogWrite(drvIn1,3000);
   analogWrite(drvIn2, 0);
   analogWrite(drvIn3,0);
   analogWrite(drvIn4,0); 
 }
 void movDelDer(){
-  analogWrite(drvIn1,100);
+  analogWrite(drvIn1,300);
   analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,50);
+  analogWrite(drvIn3,100);
   analogWrite(drvIn4,0); 
 
 }
 void movDelIzq(){
-  analogWrite(drvIn1,50);
+  analogWrite(drvIn1,100);
   analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,100);
+  analogWrite(drvIn3,300);
   analogWrite(drvIn4,0); 
 
 }
@@ -107,4 +107,8 @@ void setMotor(int izq, int der) {
     analogWrite(drvIn3, 0);
     analogWrite(drvIn4, -der);
   }
+}
+
+void seguirUbicacion(double cursoGrados, double destGrados){
+
 }
