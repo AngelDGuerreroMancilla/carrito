@@ -7,24 +7,8 @@
 #include "motores.h"
 #include "gps.h"
 #include "broaker.h"
-
-#define echo 7
-#define trig 42
-
-#define lin1 4
-#define lin2 5
-#define lin3 6
-#define lin4 8
-#define lin5 3
-#define lin6 9
-#define lin7 1
-#define lin8 2
-
-QTRSensors qtr;
-Preferences preferencias;
-
-const uint8_t SensorCount = 8;
-uint8_t pinesSensores[SensorCount] = {4, 5, 6, 8, 3, 9, 1, 2};
+#include "calibrar.h"
+#include "seguidor.h"
 
 // unsigned long duracion;
 int distancia;
@@ -32,45 +16,8 @@ long ultima_medicion=0;
 bool modSegLin = false;
 bool calibracion=0;
 
-int lastError = 0;
-float integral=0;
-
-float kp = 0.1;  
-float kd = 0.3;   
-float ki = 0;
-int velBas = 100; // Velocidad normal de los motores en línea recta (0-255)
-int velMax = 120; // Límite de PWM
 
 bool gpsIsActive= 0;
-
-
-
-
-
-
-
-
-// void controlSensor( int distSensUlt){
-//   if (distSensUlt <= 20){
-    
-//     analogWrite(drvIn1, 0); 
-//     digitalWrite(drvIn2, LOW);
-    
-//     analogWrite(drvIn3, 0);
-//     digitalWrite(drvIn4, LOW);
-    
-//     Serial.println("Freno Activado (Motores apagados)");
-    
-//   }else{
-    
-//     digitalWrite(drvIn2, LOW);
-//     analogWrite(drvIn1, 200); // velocidad 
-    
-//     analogWrite(drvIn3, 200); // velocidad 
-    
-//     Serial.println("Avanzando");
-//   }
-// }
 
 
 
@@ -89,72 +36,6 @@ bool separarTextoComa(String mensaje, double &valor1, double &valor2) {
   
   return false; 
 }
-
-
-
-void contrLineas(){
-
-  uint16_t valores[8]; 
-  uint16_t posicion = qtr.readLineBlack(valores);
-
-  int error = posicion - 3500;
-
-  float errorNorm = error / 3500.0;
-
-  // Integral controlado
-  if (abs(error) < 1000) {
-    integral += errorNorm;
-  }
-
-  integral = constrain(integral, -10, 10);
-
-  float derivada = errorNorm - (lastError / 3500.0);
-
-  float ajuste = kp * errorNorm + ki * integral + kd * derivada;
-
-  lastError = error;
-
-  int motorDer = velBas + (ajuste * velMax);
-  int motorIzq = velBas - (ajuste * velMax);
-
-  motorIzq = constrain(motorIzq, -velMax, velMax);
-  motorDer = constrain(motorDer, -velMax, velMax);
-
-  setMotor(motorIzq, motorDer);
-}
-void calibrar(){  
-  Serial.println("\n*** INICIANDO CALIBRACION ***");
-  Serial.println("¡MUEVE EL ROBOT DE LADO A LADO SOBRE LA LINEA!");
-  
-  // Leemos 400 veces (toma aprox. 10 segundos)
-  for (uint16_t i = 0; i < 400; i++) {
-    qtr.calibrate();
-  }
-  
-  Serial.println("Calibracion terminada. Guardando en memoria...");
-
-  
-  for (uint8_t i = 0; i < SensorCount; i++) {
-    preferencias.putUInt(("min" + String(i)).c_str(), qtr.calibrationOn.minimum[i]);
-    preferencias.putUInt(("max" + String(i)).c_str(), qtr.calibrationOn.maximum[i]);
-  }
-  
-  Serial.println("¡Datos guardados con éxito!");
-}
-
-void cargarCalibracion(){
-  Serial.println("\nCargando calibracion desde memoria...");
-  
-  qtr.calibrate(); 
-
-  for (uint8_t i = 0; i < SensorCount; i++) {
-    // Si no hay datos, ponemos el mínimo en 1023 y el máximo en 1023 por seguridad
-    qtr.calibrationOn.minimum[i] = preferencias.getUInt(("min" + String(i)).c_str(), 1023);
-    qtr.calibrationOn.maximum[i] = preferencias.getUInt(("max" + String(i)).c_str(), 1023);
-  }
-  Serial.println("¡Calibracion cargada y lista para correr!");
-}
-
 
 void recibirAlerta(char* topic, byte* payload, unsigned int length){
   Serial.print("mensaje del tema : ");
@@ -222,21 +103,6 @@ void recibirAlerta(char* topic, byte* payload, unsigned int length){
 }
 
 
-// void distCm(){ 
-//   digitalWrite(trig, LOW);
-//   delayMicroseconds(2);
-//   digitalWrite(trig, HIGH);
-//   delayMicroseconds(10);
-//   digitalWrite(trig, LOW);
-//   duracion = pulseIn(echo, HIGH,30000);
-  
-//   int distCm = (duracion * 0.0343/ 2 );
-//   if(duracion == 0 ){
-//     distCm = 500;
-//   }
-//   controlSensor(distCm);
-  
-// }
 
 
 void setup(){
@@ -289,11 +155,6 @@ void loop(){
   }
   client.loop();
   long ahora=millis();
-  // if (ahora-ultima_medicion>50){
-  //   ultima_medicion = ahora;
-  //   // distCm();
-    
-   
-  // }
+
   
 }

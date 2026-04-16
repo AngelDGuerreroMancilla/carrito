@@ -9,6 +9,7 @@ extern double latDestino;
 extern double lngDestino;
 
 
+
 void estadoGps();
 void envPos();
 void direccionamiento();

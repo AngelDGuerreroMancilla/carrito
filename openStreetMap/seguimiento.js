@@ -2,6 +2,7 @@ const map = L.map("mapa").setView([19.260666, -103.710552],16);
 let marcDest= null;
 let latDest= null
 let lngDest= null;
+let btnActGps= document.getElementById("btnActGps");
 
 const iconDest= new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
@@ -42,6 +43,8 @@ const clientGps = mqtt.connect('ws://broker.hivemq.com:8000/mqtt');
 let latRecibida = null;
 let lngRecibida = null;
 
+
+
 clientGps.on("connect", ()=>{
     console.log("conectado a mqtt para ubicacion");
     document.getElementById("estado").innerText= "esperando GPS..."
@@ -70,5 +73,18 @@ clientGps.on("message",(topic,message)=>{
         map.panTo(nuevaPos)
     }if(topic=="mi_carrito/web/satel"){
         document.getElementById("satel").innerText=mensaje;
+    }
+})
+
+
+btnActGps.addEventListener("click", ()=>{
+    if(btnActGps.textContent== "GPS Activado"){
+        envDatos("actGps","0")
+        console.log("env gps Desactivado");
+        btnActGps.textContent= "GPS Desactivado";
+    }else{
+        envDatos("actGps","1");
+        console.log("env gps Activado");
+        btnActGps.textContent= "GPS Activado";
     }
 })
