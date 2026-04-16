@@ -1,35 +1,53 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <PubSubClient.h>
-#include <sensor.h>
-#define echo 4
-#define trig 5
 
-#define drvIn1 6
-#define drvIn2 7
-#define drvIn3 15
-#define drvIn4 16
+#include <QTRSensors.h>
+#include <Preferences.h>
+#include <TinyGPS++.h>
+#include "motores.h"
+#include "gps.h"
+#include "broaker.h"
 
-#define lin1 17
-#define lin2 18
-#define lin3 8
-#define lin4 3
-#define lin5 46
+#define echo 7
+#define trig 42
 
+#define lin1 4
+#define lin2 5
+#define lin3 6
+#define lin4 8
+#define lin5 3
+#define lin6 9
+#define lin7 1
+#define lin8 2
 
+QTRSensors qtr;
+Preferences preferencias;
 
-unsigned long duracion;
+const uint8_t SensorCount = 8;
+uint8_t pinesSensores[SensorCount] = {4, 5, 6, 8, 3, 9, 1, 2};
+
+// unsigned long duracion;
 int distancia;
 long ultima_medicion=0;
 bool modSegLin = false;
+bool calibracion=0;
+
+int lastError = 0;
+float integral=0;
+
+float kp = 0.1;  
+float kd = 0.3;   
+float ki = 0;
+int velBas = 100; // Velocidad normal de los motores en línea recta (0-255)
+int velMax = 120; // Límite de PWM
+
+bool gpsIsActive= 0;
 
 
-const char* ssid= "INFINITUM2059";
-const char* password = "kzcSZ5TaC3";
-const char* mqttServer = "broker.hivemq.com";
 
-WiFiClient espClient;
-PubSubClient client(espClient); 
+
+
+
 
 
 // void controlSensor( int distSensUlt){
@@ -55,123 +73,89 @@ PubSubClient client(espClient);
 // }
 
 
-void movDel(){
-  analogWrite(drvIn1,200);
-  analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,200);
-  analogWrite(drvIn4,0); 
-}
-void movAtras(){
-  analogWrite(drvIn1,0);
-  analogWrite(drvIn2, 200);
-  analogWrite(drvIn3,0);
-  analogWrite(drvIn4,200); 
-}
-void movIzq(){
-  analogWrite(drvIn1,0);
-  analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,200);
-  analogWrite(drvIn4,0); 
-}
-void movDer(){
-  analogWrite(drvIn1,200);
-  analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,0);
-  analogWrite(drvIn4,0); 
-}
-void movDelDer(){
-  analogWrite(drvIn1,200);
-  analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,100);
-  analogWrite(drvIn4,0); 
 
-}
-void movDelIzq(){
-  analogWrite(drvIn1,100);
-  analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,200);
-  analogWrite(drvIn4,0); 
-
-}
-
-
-void contrlJoy(int ejeX, int ejeY){
-  int velDer= ejeX +ejeY;
-  int velIzq=ejeY-ejeX;
-
-  velIzq= constrain(velIzq, -500,500);
-  velDer = constrain(velDer, -500, 500);
-
-  int pwmIzq = map(abs(velIzq), 0, 500, 0, 3000);
-  int pwmDer = map(abs(velDer), 0, 500, 0, 3000);
-
-
-  if (velIzq>10){
-    analogWrite(drvIn1, pwmIzq);
-    analogWrite(drvIn2, 0);
-    
-  }else if (velIzq < -10 ){
-    analogWrite(drvIn1, 0);
-    analogWrite(drvIn2, pwmIzq);
-
-  }else{
-    analogWrite(drvIn1, 0);
-    analogWrite(drvIn2, 0);
-  }
-
-  if (velDer>10){
-    analogWrite(drvIn3, pwmDer);
-    analogWrite(drvIn4, 0);
-    
-  }else if (velDer < -10 ){
-    analogWrite(drvIn3, 0);
-    analogWrite(drvIn4, pwmDer);
-
-  }else{
-    analogWrite(drvIn3, 0);
-    analogWrite(drvIn4, 0);
-  }
-
-
-}
-
-void coordenadas(String mensaje){
+bool separarTextoComa(String mensaje, double &valor1, double &valor2) {
   int indiceComa = mensaje.indexOf(",");
-  if(indiceComa>0){
-    String txtX= mensaje.substring(0,indiceComa);
-    String txtY= mensaje.substring(indiceComa +1 );
+  
+  if (indiceComa > 0) {
+    String txt1 = mensaje.substring(0, indiceComa);
+    String txt2 = mensaje.substring(indiceComa + 1);
 
-    int ejeX = txtX.toInt();
-    int ejeY = txtY.toInt();
-
-    contrlJoy(ejeX, ejeY);
-
+    valor1 = txt1.toDouble();
+    valor2 = txt2.toDouble();
+    
+    return true; 
   }
+  
+  return false; 
 }
+
+
+
 void contrLineas(){
-  bool extIzq = digitalRead(lin1);
-  bool midIzq = digitalRead(lin2);
-  bool mid = digitalRead(lin3);
-  bool midDer= digitalRead(lin4);
-  bool extDer= digitalRead(lin5);
+
+  uint16_t valores[8]; 
+  uint16_t posicion = qtr.readLineBlack(valores);
+
+  int error = posicion - 3500;
+
+  float errorNorm = error / 3500.0;
+
+  // Integral controlado
+  if (abs(error) < 1000) {
+    integral += errorNorm;
+  }
+
+  integral = constrain(integral, -10, 10);
+
+  float derivada = errorNorm - (lastError / 3500.0);
+
+  float ajuste = kp * errorNorm + ki * integral + kd * derivada;
+
+  lastError = error;
+
+  int motorDer = velBas + (ajuste * velMax);
+  int motorIzq = velBas - (ajuste * velMax);
+
+  motorIzq = constrain(motorIzq, -velMax, velMax);
+  motorDer = constrain(motorDer, -velMax, velMax);
+
+  setMotor(motorIzq, motorDer);
+}
+void calibrar(){  
+  Serial.println("\n*** INICIANDO CALIBRACION ***");
+  Serial.println("¡MUEVE EL ROBOT DE LADO A LADO SOBRE LA LINEA!");
+  
+  // Leemos 400 veces (toma aprox. 10 segundos)
+  for (uint16_t i = 0; i < 400; i++) {
+    qtr.calibrate();
+  }
+  
+  Serial.println("Calibracion terminada. Guardando en memoria...");
 
   
-  if(extIzq && !midIzq &&  !mid && !midDer && !extDer) 
-  movIzq();
-  if(!extIzq && midIzq &&  !mid && !midDer && !extDer) 
-  movDelIzq();
-  if(!extIzq && !midIzq &&  mid && !midDer && !extDer) 
-  movDel();
-  if(!extIzq && !midIzq &&  !mid && midDer && !extDer) 
-  movDelDer();
-  if(!extIzq && !midIzq &&  !mid && !midDer && extDer) 
-  movDer();
+  for (uint8_t i = 0; i < SensorCount; i++) {
+    preferencias.putUInt(("min" + String(i)).c_str(), qtr.calibrationOn.minimum[i]);
+    preferencias.putUInt(("max" + String(i)).c_str(), qtr.calibrationOn.maximum[i]);
+  }
   
+  Serial.println("¡Datos guardados con éxito!");
+}
+
+void cargarCalibracion(){
+  Serial.println("\nCargando calibracion desde memoria...");
+  
+  qtr.calibrate(); 
+
+  for (uint8_t i = 0; i < SensorCount; i++) {
+    // Si no hay datos, ponemos el mínimo en 1023 y el máximo en 1023 por seguridad
+    qtr.calibrationOn.minimum[i] = preferencias.getUInt(("min" + String(i)).c_str(), 1023);
+    qtr.calibrationOn.maximum[i] = preferencias.getUInt(("max" + String(i)).c_str(), 1023);
+  }
+  Serial.println("¡Calibracion cargada y lista para correr!");
 }
 
 
-//escucha todos los mensajes que llegan del broaker
-//aqui llegan los topicos, dependiendo de los topicos vamos a ejecutar las funciones correspondientes.
 void recibirAlerta(char* topic, byte* payload, unsigned int length){
   Serial.print("mensaje del tema : ");
   Serial.println(topic);
@@ -181,60 +165,63 @@ void recibirAlerta(char* topic, byte* payload, unsigned int length){
     msj += (char)payload[i];
   }
   if (strcmp(topic, "mi_carrito/esp32/joystick") == 0) { 
-    coordenadas( msj);
+    double x, y; 
+    
+    // Si la función logra separar el texto...
+    if (separarTextoComa(msj, x, y)) {
+      // Como el joystick necesita enteros (int), los convertimos al pasarlos
+      contrlJoy((int)x, (int)y); 
+    }
     
   }
   if(strcmp(topic,"mi_carrito/esp32/seguidorLineas" )== 0){
     modSegLin = msj.toInt();
+    cargarCalibracion();
   }
-}
-
-
-
-
-// se conecta a la red declarada anteriormente
-void setup_wifi(){
-  delay(10);
-  Serial.print("Conectando a ");
-  Serial.println(ssid);
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  if(strcmp(topic,"mi_carrito/esp32/calibracion")==0){
+    calibracion= msj.toInt();
+    if (calibracion== 1){
+      calibrar();
+    }
   }
-  Serial.println("\nWiFi conectado.");
-}
-
-//crea un id de cliente del broacker de ESP32TeamRC mas numeros random 
-//quedando algo como ESP32TeamRC-A1B2
-// se conecta al broaker y si se desconecta se reconecta
-void reconnect(){
-  while(!client.connected()){
-      Serial.print("intentando volver a conectar a MQTT");
-      String clientId = "ESP32TeamRC";
-      clientId +=String(random(0,0xffff), HEX);
+  if(strcmp(topic, "mi_carrito/esp32/kp")== 0){
+    kp= msj.toFloat();
+    Serial.println("kp estableido a "); Serial.println(kp);
+  }
+  if(strcmp(topic, "mi_carrito/esp32/kd")== 0){
+    kd= msj.toFloat();
+    Serial.println("kd establecido a "); Serial.println(kd);
+  }  
+  if(strcmp(topic, "mi_carrito/esp32/ki")== 0){
+    ki= msj.toFloat();
+    Serial.println("ki establecido a "); Serial.println(ki);
+  }
+  if(strcmp(topic, "mi_carrito/esp32/velBas")== 0){
+    velBas= msj.toInt();
+    Serial.println("velBas establecido a "); Serial.println(velBas);
+  }
+  if(strcmp(topic, "mi_carrito/esp32/velMax")== 0){
+    velMax= msj.toInt();
+    Serial.println("velMax establecido a "); Serial.println(velMax);
+  } 
+  if(strcmp(topic, "mi_carrito/esp32/actGps")== 0){
+    gpsIsActive= msj.toInt();
+    Serial.print("gps "); Serial.println(msj.toInt());
+  }
+  if (strcmp(topic, "mi_carrito/esp32/dest") == 0) { 
     
-    if(client.connect(clientId.c_str())){
-      Serial.println("conectao");
-      client.subscribe("mi_carrito/esp32/#");
-    }else {
-      Serial.print("fallo , rc= ");
-      Serial.print(client.state());
-      delay(5000);
+    if (separarTextoComa(msj, latDestino, lngDestino)) {
+      
+      Serial.print("Nuevo destino fijado: ");
+      Serial.print(latDestino, 6);
+      Serial.print(", ");
+      Serial.println(lngDestino, 6);
+      
     }
   }
 }
 
 
-// void envSig(String topic, String sig){
-    
-//     Serial.print("enviando duracion: ");
-//     Serial.println(sig);
-//     String topico="mi_carrito/web/";
-//     topico+= topic;
-//     client.publish(topico.c_str(), sig.c_str());
-  
-// }
 // void distCm(){ 
 //   digitalWrite(trig, LOW);
 //   delayMicroseconds(2);
@@ -253,17 +240,29 @@ void reconnect(){
 
 
 void setup(){
+  Serial.begin(115200);
+  Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
+  delay(1000);  
+
+  analogReadResolution(10);
   pinMode(echo, INPUT);
   pinMode(trig, OUTPUT);
   pinMode(drvIn1, OUTPUT);
   pinMode(drvIn2, OUTPUT);
   pinMode(drvIn3, OUTPUT);
   pinMode(drvIn4, OUTPUT);
-  Serial.begin(115200);
+
+ 
+  apagar();
+
+  qtr.setTypeAnalog();
+  qtr.setSensorPins(pinesSensores, SensorCount);
+  preferencias.begin("datos_qtr", false);
+  cargarCalibracion();
   setup_wifi();
+  
   client.setServer(mqttServer, 1883);
   client.setCallback(recibirAlerta);
-  analogWriteResolution(10);
 }
 
 
@@ -271,13 +270,30 @@ void loop(){
   if(!client.connected()){
     reconnect();
   }
-  client.loop();
-  long ahora=millis();
-  if (ahora-ultima_medicion>100){
-    ultima_medicion = ahora;
-    // distCm();
-    if(modSegLin== 1){
-      contrLineas();
+  if(gpsIsActive) {
+    estadoGps();
+    while(Serial2.available() > 0) {
+      if (gps.encode(Serial2.read())) {
+       
+        envPos(); 
+        
+        direccionamiento();
+
+      }
     }
   }
+  
+
+  if(modSegLin== 1){
+      contrLineas();
+  }
+  client.loop();
+  long ahora=millis();
+  // if (ahora-ultima_medicion>50){
+  //   ultima_medicion = ahora;
+  //   // distCm();
+    
+   
+  // }
+  
 }

@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Control - Carrito ESP32</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script> 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="openStreetMap/mapa.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
     
@@ -20,31 +25,128 @@
     <div>
         <h2>Modo seguidor de lineas</h2>
         <button id="btnSegLin">Desactivado</button>
+        <h2>Calibracion de sensores</h2>
+        <button id="btnCalib">Calibrar</button>
+
+        <h4>kp</h4>
+        <input type="range" id="rangoKp" name="rango" min="0" max="10" step="0.01" value="0.01" oninput="kpVal.value = this.value">
+        <output id="kpVal">0.1</output>
+        
+        <h4>kd</h4>
+        <input type="range" id="rangoKd" name="rango" min="0" max="10" step="0.01" value="0.3" oninput="kdVal.value = this.value">
+        <output id="kdVal">0.3</output>
+
+        <h4>ki</h4>
+        <input type="range" id="rangoKi" name="rango" min="0" max="1" step="0.0001" value="0" oninput="kiVal.value = this.value">
+        <output id="kiVal">0</output>
+
+        <h4>velocidad base </h4>
+        <input type="range" id="rangoVelBas" name="rango" min="0" max="500" step="1" value="100" oninput="velBas.value = this.value">
+        <output id="velBas">100</output>
+
+        <h4>velocidad Maxima</h4>
+        <input type="range" id="rangoVelMax" name="rango" min="0" max="500" step="1" value="120" oninput="velMax.value = this.value">
+        <output id="velMax">120</output>
+
+        
     </div>
     <div style="text-align: center; margin-top: 50px;">
+        <h2>modo Manual con joystick</h2>
+        <button id="btnModMan">Activado</button>
     <canvas id="joystickCanvas" width="200" height="200" style="background-color: #f0f0f0; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"></canvas>
     
     <h3 style="font-family: sans-serif;">
         Eje X: <span id="valorX">0</span> | Eje Y: <span id="valorY">0</span>
     </h3>
 </div>
+
+    <div id="panel-gps">
+        <h2>Posicionamiento por Gps</h2>
+        <button id="btnActGps">GPS Desactivado</button>
+        <strong>Estado:</strong> <span id="estado">Conectando...</span><br>
+        <strong>Satelites:</strong> <span id="satel">0</span><br>
+        <strong>Latitud del carrito:</strong> <span id="txt-lat">---</span>
+        <strong>Latitud destino:</strong> <span id="txt-lat-dest">---</span><br>
+        <strong>Longitud del carrito:</strong> <span id="txt-lng">---</span>
+        <strong>Longitud destino:</strong> <span id="txt-lng-dest">---</span><br>
+    </div>
+    <div id="mapa"></div>
     <script>
        
+        let btnCalib=document.getElementById("btnCalib");
+        let btnSegLin= document.getElementById("btnSegLin");
+        let btnModMan=document.getElementById("btnModMan");
+        let rangoKp = document.getElementById("rangoKp");
+        let rangoKd = document.getElementById("rangoKd");
+        let rangoKi = document.getElementById("rangoKi");
+        let rangoVelBas= document.getElementById("rangoVelBas");
+        let rangoVelMax= document.getElementById("rangoVelMax");
+        let btnActGps= document.getElementById("btnActGps");
 
-             let btnSegLin= document.getElementById("btnSegLin");
+        btnActGps.addEventListener("click", ()=>{
+            if(btnActGps.textContent== "GPS Activado"){
+                envDatos("actGps","0")
+                console.log("env gps Desactivado");
+                btnActGps.textContent= "GPS Desactivado";
+            }else{
+                envDatos("actGps","1");
+                console.log("env gps Activado");
+                btnActGps.textContent= "GPS Activado";
+            }
+        })
 
+        rangoKp.addEventListener("input", () => {
+            envDatos("kp", rangoKp.value.toString());
+            console.log(`enviado kp ${rangoKp.value.toString()}`)
+        })
+        rangoKd.addEventListener("input", () => {
+            envDatos("kd", rangoKd.value.toString());
+            console.log(`enviado kd ${rangoKd.value.toString()}`)
+        })
+        rangoKi.addEventListener("input", () => {
+            envDatos("ki", rangoKi.value.toString());
+            console.log(`enviado ki ${rangoKi.value.toString()}`)
+        })
+
+        rangoVelBas.addEventListener("input",()=>{
+            envDatos("velBas",rangoVelBas.value.toString());
+            console.log(`enviado velBas ${rangoVelBas.value.toString()}`)
+        })
+
+        rangoVelMax.addEventListener("input",()=>{
+            envDatos("velMax",rangoVelMax.value.toString());
+            console.log(`enviado velMax ${rangoVelMax.value.toString()}`)
+        })        
+    
+        btnModMan.addEventListener("click",() =>{
+            if(btnModMan.textContent== "Desactivado"){
+                btnModMan.innerText="Activado";
+                envDatos("modMan", "1");
+                console.log("modo Manual activado");
+            }else if(btnModMan.textContent=="Activado"){    
+                btnModMan.innerText="Desactivado";
+                envDatos("modMan", "0");
+                console.log("modo manual desactivado")
+            }
+        })
+
+        btnCalib.addEventListener("click", () =>{
+                envDatos("calibracion","1");
+                console.log("calibrar env 1")
+            
+        })
 
         btnSegLin.addEventListener("click",() =>{
 
             if(btnSegLin.textContent =="Desactivado"){
                 btnSegLin.innerText="Activado";
                 envDatos("seguidorLineas", "1");
-                console.log("env1");
+                console.log("seguidor de lineas ACTIVADO");
             }
             else if(btnSegLin.textContent== "Activado"){
                 btnSegLin.innerText="Desactivado";
                 envDatos("seguidorLineas", "0");
-                console.log("env0");
+                console.log("seguidor de lineas DESACTIVADO");
             }
         })
             
@@ -128,5 +230,7 @@
         
     </script>
     <script src="./joystick.js"></script>
+    <script src="openStreetMap/seguimiento.js"></script>
+    
 </body>
 </html>

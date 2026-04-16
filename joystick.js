@@ -2,32 +2,45 @@ const canvas = document.getElementById('joystickCanvas');
 const ctx = canvas.getContext('2d');
 const coordX = document.getElementById('valorX');
 const coordY = document.getElementById('valorY');
+// Asegúrate de tener referenciado tu botón
+// const btnModMan = document.getElementById('btnModMan'); 
 
 // Configuraciones del joystick
 const radioBase = canvas.width / 2;
 const radioStick = 40;
-let centroX = canvas.width / 2;
-let centroY = canvas.height / 2;
-let dibujando = false;
+const centroX = canvas.width / 2;
+const centroY = canvas.height / 2;
 
-// Coordenadas actuales del stick
+// Variables de estado
+let dibujando = false;
 let stickX = centroX;
 let stickY = centroY;
+let ultimoEnvioMQTT = 0; // Control de tiempo para no saturar el broker
 
 // Función para dibujar el joystick
 function dibujar() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar lienzo
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dibujar el stick (círculo interior)
+    // Opcional: Dibujar la base del joystick (círculo exterior gris claro)
+    ctx.beginPath();
+    ctx.arc(centroX, centroY, radioBase, 0, Math.PI * 2);
+    ctx.fillStyle = '#f0f0f0'; 
+    ctx.fill();
+    ctx.closePath();
+
+    // Dibujar el stick (círculo interior azul)
     ctx.beginPath();
     ctx.arc(stickX, stickY, radioStick, 0, Math.PI * 2);
-    ctx.fillStyle = '#3498db'; // Color azul
+    ctx.fillStyle = '#3498db';
     ctx.fill();
     ctx.closePath();
 }
 
 // Calcular la posición y limitar al borde del círculo
 function actualizarPosicion(clientX, clientY) {
+    // CONDICIÓN PRINCIPAL: Solo funciona si el modo manual está activado
+    if (btnModMan.textContent !== "Activado") return;
+
     const rect = canvas.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
@@ -42,7 +55,7 @@ function actualizarPosicion(clientX, clientY) {
     stickX = centroX + distancia * Math.cos(angulo);
     stickY = centroY + distancia * Math.sin(angulo);
 
-    // Calcular valores de -100 a 100 (Invertimos Y para que Arriba sea positivo)
+    // Calcular valores de -500 a 500
     let valX = Math.round((stickX - centroX) / (radioBase - radioStick) * 500);
     let valY = Math.round((stickY - centroY) / (radioBase - radioStick) * -500); 
 
@@ -50,40 +63,62 @@ function actualizarPosicion(clientX, clientY) {
     coordY.innerText = valY;
 
     dibujar();
-    let envio = `${valX.toString()},${valY.toString()}`;
-    
-    envDatos("joystick", envio )
-     console.log(`enviando ${envio}`)
-    // AQUÍ ES DONDE ENVIARÍAS POR MQTT
-    // Ejemplo: enviarDatosMQTT(valX, valY);
+
+    // OPTIMIZACIÓN MQTT: Solo enviamos datos cada 100 milisegundos (10 veces por segundo)
+    let ahora = Date.now();
+    if (ahora - ultimoEnvioMQTT > 100) {
+        let envio = `${valX},${valY}`;
+        envDatos("joystick", envio);
+        console.log(`Enviando: ${envio}`);
+        ultimoEnvioMQTT = ahora;
+    }
 }
-
-// Eventos de Mouse
-canvas.addEventListener('mousedown', () => dibujando = true);
-canvas.addEventListener('mousemove', (e) => { if (dibujando) actualizarPosicion(e.clientX, e.clientY); });
-canvas.addEventListener('mouseup', soltar);
-canvas.addEventListener('mouseleave', soltar);
-
-// Eventos de Pantalla Táctil (Celular)
-canvas.addEventListener('touchstart', (e) => { dibujando = true; actualizarPosicion(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
-canvas.addEventListener('touchmove', (e) => { if (dibujando) actualizarPosicion(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
-canvas.addEventListener('touchend', soltar);
 
 // Función para cuando soltamos el joystick (regresa al centro)
 function soltar() {
+    if (!dibujando) return; // Evitar que se ejecute si ya estaba suelto
+
     dibujando = false;
     stickX = centroX;
     stickY = centroY;
     coordX.innerText = "0";
     coordY.innerText = "0";
     dibujar();
-
-    let envioCeros= "0,0";
-    envDatos("joystick", envioCeros );
-    console.log(`enviando ${envioCeros}`)
-    // Enviar señal de parar al ESP32
-    // Ejemplo: enviarDatosMQTT(0, 0);
+    
+    // Al soltar, enviamos el freno INMEDIATAMENTE (ignoramos el temporizador)
+    let envioCeros = "0,0";
+    envDatos("joystick", envioCeros);
+    console.log(`Freno enviado: ${envioCeros}`);
 }
 
-// Dibujar por primera vez al cargar
+// --- EVENTOS DE MOUSE ---
+canvas.addEventListener('mousedown', (e) => { 
+    if (btnModMan.textContent === "Activado") {
+        dibujando = true;
+        actualizarPosicion(e.clientX, e.clientY);
+    }
+});
+canvas.addEventListener('mousemove', (e) => { 
+    if (dibujando) actualizarPosicion(e.clientX, e.clientY); 
+});
+canvas.addEventListener('mouseup', soltar);
+canvas.addEventListener('mouseleave', soltar);
+
+// --- EVENTOS TÁCTILES (CELULAR) ---
+canvas.addEventListener('touchstart', (e) => { 
+    if (btnModMan.textContent === "Activado") {
+        dibujando = true; 
+        actualizarPosicion(e.touches[0].clientX, e.touches[0].clientY); 
+        e.preventDefault(); 
+    }
+}, {passive: false});
+canvas.addEventListener('touchmove', (e) => { 
+    if (dibujando) {
+        actualizarPosicion(e.touches[0].clientX, e.touches[0].clientY); 
+        e.preventDefault(); 
+    }
+}, {passive: false});
+canvas.addEventListener('touchend', soltar);
+
+// Dibujar por primera vez al cargar la página
 dibujar();
