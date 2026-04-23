@@ -13,6 +13,7 @@ const iconDest= new L.Icon({
     shadowSize: [41, 41]
 })
 map.on("click", function(e){
+    console.log("mapa")
     latDest= e.latlng.lat;
     lngDest= e.latlng.lng;
     document.getElementById("txt-lat-dest").innerHTML= latDest;
