@@ -1,4 +1,11 @@
 #include "motores.h"
+volatile unsigned int pulsosIzq = 0;
+volatile unsigned int pulsosDer = 0;
+int velocidadBase = 150;
+int pwmI = velocidadBase;
+int pwmD = velocidadBase
+
+
 void movDel(){
   analogWrite(drvIn1,3000);
   analogWrite(drvIn2, 0);
