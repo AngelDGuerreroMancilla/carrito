@@ -6,6 +6,9 @@
 #define drvIn2 10
 #define drvIn3 18
 #define drvIn4 46
+#define sensVelIzq 11
+#define sensVelDer 12
+
 
 // 
 void apagar();

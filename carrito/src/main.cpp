@@ -117,6 +117,7 @@ void setup(){
   pinMode(drvIn2, OUTPUT);
   pinMode(drvIn3, OUTPUT);
   pinMode(drvIn4, OUTPUT);
+  pinMide()
 
  
   apagar();
