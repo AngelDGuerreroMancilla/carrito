@@ -8,30 +8,30 @@ let rangoVelBas= document.getElementById("rangoVelBas");
 let rangoVelMax= document.getElementById("rangoVelMax");
 
 
-rangoKp.addEventListener("input", () => {
+rangoKp.addEventListener("change", () => {
         envDatos("kp", rangoKp.value.toString());
         console.log(`enviado kp ${rangoKp.value.toString()}`)
     })
-    rangoKd.addEventListener("input", () => {
+    rangoKd.addEventListener("change", () => {
         envDatos("kd", rangoKd.value.toString());
         console.log(`enviado kd ${rangoKd.value.toString()}`)
     })
-    rangoKi.addEventListener("input", () => {
+    rangoKi.addEventListener("change", () => {
         envDatos("ki", rangoKi.value.toString());
         console.log(`enviado ki ${rangoKi.value.toString()}`)
     })
 
-    rangoVelBas.addEventListener("input",()=>{
+    rangoVelBas.addEventListener("change",()=>{
         envDatos("velBas",rangoVelBas.value.toString());
         console.log(`enviado velBas ${rangoVelBas.value.toString()}`)
     })
 
-    rangoVelMax.addEventListener("input",()=>{
+    rangoVelMax.addEventListener("change",()=>{
         envDatos("velMax",rangoVelMax.value.toString());
         console.log(`enviado velMax ${rangoVelMax.value.toString()}`)
     })        
 
-    btnModMan.addEventListener("click",() =>{
+    /*btnModMan.addEventListener("click",() =>{
         if(btnModMan.textContent== "Desactivado"){
             btnModMan.innerText="Activado";
             envDatos("modMan", "1");
@@ -41,11 +41,11 @@ rangoKp.addEventListener("input", () => {
             envDatos("modMan", "0");
             console.log("modo manual desactivado")
         }
-})
+})*/
 
 btnCalib.addEventListener("click", () =>{
         envDatos("calibracion","1");
-        console.log("calibrar env 1")
+        console.log("calibrar env 1");
     
 })
 
