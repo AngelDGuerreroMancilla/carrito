@@ -9,6 +9,7 @@
 #include "broaker.h"
 #include "calibrar.h"
 #include "seguidor.h"
+#include "supersonico.h"
 
 // unsigned long duracion;
 int distancia;
@@ -57,6 +58,11 @@ void recibirAlerta(char* topic, byte* payload, unsigned int length){
   }
   if(strcmp(topic,"mi_carrito/esp32/seguidorLineas" )== 0){
     modSegLin = msj.toInt();
+    if(modSegLin == 1){
+      estadoActual = SIGUIENDO_LINEA; // resetea la máquina de estados al activar
+    } else {
+      detenerMotores(); // frena al desactivar modo autónomo
+    }
     cargarCalibracion();
   }
   if(strcmp(topic,"mi_carrito/esp32/calibracion")==0){
@@ -152,7 +158,10 @@ void loop(){
   
 
   if(modSegLin== 1){
-      contrLineas();
+    modoAutonomo();   // verifica obstáculos y controla evasión
+    if(estadoActual == SIGUIENDO_LINEA) {
+      contrLineas();  // sigue la línea solo si no hay obstáculo
+    }
   }
   client.loop();
   long ahora=millis();
