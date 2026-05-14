@@ -1,9 +1,12 @@
+#ifndef motores_h
+#define motores_h
 #include "motores.h"
 volatile unsigned int pulsosIzq = 0;
 volatile unsigned int pulsosDer = 0;
 int velocidadBase = 150;
 int pwmI = velocidadBase;
-int pwmD = velocidadBase
+int pwmD = velocidadBase;
+
 
 
 void movDel(){
@@ -114,8 +117,9 @@ void setMotor(int izq, int der) {
     analogWrite(drvIn3, 0);
     analogWrite(drvIn4, -der);
   }
-}
+} 
 
 void seguirUbicacion(double cursoGrados, double destGrados){
 
 }
+#endif

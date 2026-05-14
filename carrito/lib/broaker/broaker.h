@@ -1,3 +1,6 @@
+#ifndef BROAKER_H
+#define BROAKER_H
+
 #pragma once
 #include <Arduino.h>
 #include <PubSubClient.h>
@@ -8,3 +11,4 @@ extern const char* mqttServer;
 void setup_wifi();
 void reconnect();
 void envSig(String topic, String sig);
+#endif

@@ -8,6 +8,8 @@
 #define drvIn4 46
 #define sensVelIzq 11
 #define sensVelDer 12
+#define ledIzq 
+#define ledDer 
 
 
 // 

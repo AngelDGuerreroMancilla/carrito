@@ -1,7 +1,7 @@
-#include <TinyGPS++.h>
 #include "gps.h"
 #include "broaker.h"
 #include "motores.h"
+
 
 
 TinyGPSPlus gps;
@@ -10,6 +10,7 @@ double lat ;
 double lng;
 double latDestino = 0.0;
 double lngDestino = 0.0;
+bool gpsIsActive= 0;
 
 void estadoGps() {
  
@@ -97,4 +98,3 @@ if (dist<=2 ){
   }
 
 }
-

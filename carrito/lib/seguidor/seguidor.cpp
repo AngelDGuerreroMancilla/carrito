@@ -1,5 +1,11 @@
-#include "seguidor.h"
+#ifndef seguidor_h
+#define seguidor_h
+
 #include "motores.h"
+#include "calibrar.h"
+
+bool modSegLin = false;
+
 
 int lastError = 0;
 float integral=0;
@@ -7,8 +13,8 @@ float integral=0;
 float kp = 0.1;  
 float kd = 0.3;   
 float ki = 0;
-int velBas = 100; // Velocidad normal de los motores en línea recta (0-255)
-int velMax = 120; // Límite de PWM
+int velBas = 100; 
+int velMax = 120; 
 
 void contrLineas(){
 
@@ -16,6 +22,7 @@ void contrLineas(){
   uint16_t posicion = qtr.readLineBlack(valores);
 
   int error = posicion - 3500;
+  
 
   float errorNorm = error / 3500.0;
 
@@ -37,6 +44,9 @@ void contrLineas(){
 
   motorIzq = constrain(motorIzq, -velMax, velMax);
   motorDer = constrain(motorDer, -velMax, velMax);
+  
+  setMotor(motorIzq,motorDer);
 
-  setMotor(motorIzq, motorDer);
+  
 }
+#endif
