@@ -18,6 +18,8 @@ void movDel();
 void movAtras();
 void movIzq();
 void movDer();
+void movDelDer();
+void movDelIzq();
 void contrlJoy(int ejeX, int ejeY);
 void setMotor(int izq, int der);
 void seguirUbicacion(double cursoGrados, double destGrados);
