@@ -1,6 +1,5 @@
 let btnCalib=document.getElementById("btnCalib");
 let btnSegLin= document.getElementById("btnSegLin");
-        
 let rangoKp = document.getElementById("rangoKp");
 let rangoKd = document.getElementById("rangoKd");
 let rangoKi = document.getElementById("rangoKi");

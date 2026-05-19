@@ -56,7 +56,7 @@ clientGps.on("connect", ()=>{
     
 });
 clientGps.on("message",(topic,message)=>{
-    let mensaje = parseFloat(message)//el mensaje ya es llega en string siempre
+    let mensaje = parseFloat(message)
     
     if (topic== "mi_carrito/web/lat"){
         latRecibida= mensaje;

@@ -2,8 +2,6 @@
 #include "broaker.h"
 #include "motores.h"
 
-
-
 TinyGPSPlus gps;
 
 double lat ;
@@ -17,17 +15,16 @@ void estadoGps() {
   static long ultimo_estado_gps = 0;
   long ahora = millis();
 
-  
   if (ahora - ultimo_estado_gps > 2000) {
     ultimo_estado_gps = ahora;
     if (!gps.location.isValid()) {
       Serial.print("Satélites a la vista: ");
       Serial.println(gps.satellites.value());
     } else {
-      Serial.print("GPS: ¡Conectado! Satélites en uso: ");
+      Serial.print("GPS Satélites en uso: ");
       Serial.println(gps.satellites.value());
       
-      // Si quieres mandar este aviso a tu web, descomenta estas líneas:
+     
       String msj = String(gps.satellites.value());
       envSig("satel", msj);
     }
@@ -51,8 +48,6 @@ void envPos(){
   }
 }
 
-
-
 void direccionamiento(){
 
   if (latDestino == 0.0 || !gps.location.isValid()) {
@@ -71,8 +66,6 @@ if (dist<=2 ){
   latDestino=0.0;
   return;
 }
-
-
 
   double errorGiro= gradDes-gradAct;
 
