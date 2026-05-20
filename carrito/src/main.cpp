@@ -5,10 +5,22 @@
 #define echo 4
 #define trig 5
 
+<<<<<<< Updated upstream
 #define drvIn1 6
 #define drvIn2 7
 #define drvIn3 15
 #define drvIn4 16
+=======
+#include <QTRSensors.h>
+#include <TinyGPS++.h>
+#include "motores.h"
+#include "gps.h"
+#include "broaker.h"
+#include "calibrar.h"
+#include "seguidor.h"
+#include "pubSub/pubSub.h"
+#include "supersonico.h"
+>>>>>>> Stashed changes
 
 #define lin1 17
 #define lin2 18
@@ -372,12 +384,26 @@ void setup(){
   pinMode(drvIn2, OUTPUT);
   pinMode(drvIn3, OUTPUT);
   pinMode(drvIn4, OUTPUT);
+<<<<<<< Updated upstream
   pinMode(lin1, INPUT);
   pinMode(lin2, INPUT);
   pinMode(lin3, INPUT);
   pinMode(lin4, INPUT);
   pinMode(lin5, INPUT);
   Serial.begin(115200);
+=======
+  // LEDs intermitentes
+  pinMode(ledDer, OUTPUT);
+  pinMode(ledIzq, OUTPUT);
+  digitalWrite(ledDer, LOW);
+  digitalWrite(ledIzq, LOW);
+
+
+ 
+  apagar();
+
+  calibrar();
+>>>>>>> Stashed changes
   setup_wifi();
   client.setServer(mqttServer, 1883);
   client.setCallback(recibirAlerta);
@@ -389,6 +415,29 @@ void loop(){
   if(!client.connected()){
     reconnect();
   }
+<<<<<<< Updated upstream
+=======
+  if(gpsIsActive) {
+    estadoGps();
+    while(Serial2.available() > 0) {
+      if (gps.encode(Serial2.read())) {
+       
+        envPos(); 
+        
+        direccionamiento();
+
+      }
+    }
+  }
+  
+
+  if(modSegLin== 1){
+    modoAutonomo();   // verifica obstáculos y controla intermitentes
+    if(estadoActual == SIGUIENDO_LINEA || estadoActual == DETECTADO_INT) {
+      contrLineas();  // sigue la línea solo si no hay maniobra de evasión
+    }
+  }
+>>>>>>> Stashed changes
   client.loop();
   long ahora=millis();
   if (ahora-ultima_medicion>100){
