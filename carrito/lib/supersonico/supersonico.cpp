@@ -6,6 +6,9 @@
 EstadoEvasion estadoActual = SIGUIENDO_LINEA;
 static unsigned long tiempoEstado = 0;
 
+static unsigned long tiempoParpadeo = 0;
+static bool estadoLedParpadeo = false;
+
 // Mide la distancia en cm con el sensor ultrasónico
 int medirDistancia() {
   digitalWrite(trig, LOW);
@@ -21,6 +24,37 @@ int medirDistancia() {
 // Detiene los 2 motores (freno de emergencia por obstáculo)
 void detenerMotores() {
   apagar();
+}
+
+// ── Control de intermitentes ────────────────────────────────────────────────
+void encenderIntermitentes() {
+  digitalWrite(ledDer, HIGH);
+  digitalWrite(ledIzq, HIGH);
+}
+
+void apagarIntermitentes() {
+  digitalWrite(ledDer, LOW);
+  digitalWrite(ledIzq, LOW);
+}
+
+void parpadearIntermitenteDer() {
+  unsigned long ahora = millis();
+  if (ahora - tiempoParpadeo >= INTERVALO_PARPADEO) {
+    tiempoParpadeo = ahora;
+    estadoLedParpadeo = !estadoLedParpadeo;
+    digitalWrite(ledDer, estadoLedParpadeo ? HIGH : LOW);
+    digitalWrite(ledIzq, LOW);
+  }
+}
+
+void parpadearIntermitenteIzq() {
+  unsigned long ahora = millis();
+  if (ahora - tiempoParpadeo >= INTERVALO_PARPADEO) {
+    tiempoParpadeo = ahora;
+    estadoLedParpadeo = !estadoLedParpadeo;
+    digitalWrite(ledIzq, estadoLedParpadeo ? HIGH : LOW);
+    digitalWrite(ledDer, LOW);
+  }
 }
 
 // Retorna true si cualquier sensor IR detecta la línea
@@ -41,14 +75,32 @@ void modoAutonomo() {
 
   switch (estadoActual) {
     case SIGUIENDO_LINEA: {
+      apagarIntermitentes();
+      int dist = medirDistancia();
+      if (dist <= DIST_INT) {
+        encenderIntermitentes();
+        estadoActual = DETECTADO_INT;
+        tiempoEstado = ahora;
+        Serial.println("Obstaculo a 30 cm! Intermitentes encendidas.");
+      }
+      break;
+    }
+
+    case DETECTADO_INT: {
       int dist = medirDistancia();
       if (dist <= DIST_OBSTACULO) {
+        apagarIntermitentes();
         detenerMotores();
         estadoActual = DETENIDO;
         tiempoEstado = ahora;
-        Serial.println("Obstaculo detectado! Deteniendo...");
+        Serial.println("Obstaculo a 15 cm! Frenando...");
+      } else if (dist > DIST_INT) {
+        apagarIntermitentes();
+        estadoActual = SIGUIENDO_LINEA;
+        Serial.println("Obstaculo alejado. Reanudando linea.");
+      } else {
+        encenderIntermitentes();
       }
-      // El seguimiento de línea lo gestiona contrLineas() en main.cpp
       break;
     }
 
@@ -57,13 +109,17 @@ void modoAutonomo() {
       if (ahora - tiempoEstado >= 200) {
         estadoActual = GIRANDO_DERECHA;
         tiempoEstado = ahora;
+        estadoLedParpadeo = false;  // reinicia parpadeo
+        tiempoParpadeo = ahora;
         Serial.println("Girando a la derecha...");
       }
       break;
 
     case GIRANDO_DERECHA:
       movDer();
+      parpadearIntermitenteDer();
       if (ahora - tiempoEstado >= 400) {
+        apagarIntermitentes();
         estadoActual = AVANZANDO;
         tiempoEstado = ahora;
         Serial.println("Avanzando para pasar obstaculo...");
@@ -75,13 +131,17 @@ void modoAutonomo() {
       if (ahora - tiempoEstado >= 500) {
         estadoActual = GIRANDO_IZQUIERDA;
         tiempoEstado = ahora;
+        estadoLedParpadeo = false;  // reinicia parpadeo
+        tiempoParpadeo = ahora;
         Serial.println("Girando a la izquierda...");
       }
       break;
 
     case GIRANDO_IZQUIERDA:
       movIzq();
+      parpadearIntermitenteIzq();
       if (ahora - tiempoEstado >= 400) {
+        apagarIntermitentes();
         estadoActual = BUSCANDO_LINEA;
         tiempoEstado = ahora;
         Serial.println("Buscando linea...");

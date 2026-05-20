@@ -7,10 +7,13 @@
 
 // Distancia mínima en cm para considerar un obstáculo
 #define DIST_OBSTACULO 15
+#define DIST_INT       30   // Distancia de advertencia (encienden ambas intermitentes)
+#define INTERVALO_PARPADEO 300  // ms entre cada toggle del LED
 
 // Máquina de estados para la evasión de obstáculos
 enum EstadoEvasion {
   SIGUIENDO_LINEA,
+  DETECTADO_INT,      // Obstáculo a 30 cm → ambas intermitentes encendidas
   DETENIDO,
   GIRANDO_DERECHA,
   AVANZANDO,
@@ -32,3 +35,9 @@ bool lineaDetectada();
 
 // Máquina de estados: sigue la línea y evade obstáculos automáticamente
 void modoAutonomo();
+
+// Control de intermitentes
+void encenderIntermitentes();
+void apagarIntermitentes();
+void parpadearIntermitenteDer();
+void parpadearIntermitenteIzq();
