@@ -5,8 +5,10 @@
 WiFiClient espClient;
 PubSubClient client(espClient); 
 
-const char* ssid= "INFINITUM2059";
-const char* password = "kzcSZ5TaC3";
+/* const char* ssid= "Mega_2.4G_424B";
+const char* password = "k6tXAfxf"; */
+const char* ssid= "Hiram";
+const char* password = "12345678";
 const char* mqttServer = "broker.hivemq.com";
 
 

@@ -54,18 +54,34 @@ void direccionamiento(){
     return; 
   }
 
-double dist=gps.distanceBetween(lat,lng,latDestino,lngDestino);
-double gradDes= gps.courseTo(lat,lng,latDestino,lngDestino);
-
-double gradAct= gps.course.deg();
+  double dist=gps.distanceBetween(lat,lng,latDestino,lngDestino);
 
 
-if (dist<=2 ){
-  apagar();
-  Serial.println("llegada a objetivo, esta a menos de 2M");
-  latDestino=0.0;
-  return;
-}
+  while(dist>=2){
+    movDel();
+    Serial.println("gps mov adelante");
+    
+
+  }
+  if(dist<2){
+    apagar();
+    Serial.println("llegada a objetivo, esta a menos de 2M");
+    latDestino=0.0;
+    return;
+  }
+  
+
+/*   double gradDes= gps.courseTo(lat,lng,latDestino,lngDestino);
+
+  double gradAct= gps.course.deg(); 
+ */
+
+/*   if (dist<=2 ){
+    apagar();
+    Serial.println("llegada a objetivo, esta a menos de 2M");
+    latDestino=0.0;
+    return;
+  }
 
   double errorGiro= gradDes-gradAct;
 
@@ -88,6 +104,6 @@ if (dist<=2 ){
   }else {
     movIzq();
     Serial.println("gps mov izquierda");
-  }
+  } */
 
 }
