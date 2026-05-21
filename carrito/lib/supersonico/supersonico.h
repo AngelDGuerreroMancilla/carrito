@@ -33,8 +33,14 @@ void detenerMotores();
 // Retorna true si cualquier sensor IR detecta la línea
 bool lineaDetectada();
 
+// Bandera para habilitar el modo evasor independiente
+extern bool modEvasor;
+
 // Máquina de estados: sigue la línea y evade obstáculos automáticamente
 void modoAutonomo();
+
+// Máquina de estados: evasor de obstáculos libre (sin seguir línea)
+void modoEvasorLibre();
 
 // Control de intermitentes
 void encenderIntermitentes();

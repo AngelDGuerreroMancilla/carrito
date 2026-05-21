@@ -2,6 +2,20 @@
 #include "motores.h"
 #include "seguidor.h"
 
+// Bandera y estado para el modo evasor libre
+bool modEvasor = false;
+
+enum EstadoEvasorLibre {
+  AVANZANDO_NORMAL,
+  ADVERTENCIA_OBSTACULO,
+  FRENADO,
+  GIRANDO_DER,
+  EVADIENDO_FRENTE,
+  GIRANDO_IZQ
+};
+EstadoEvasorLibre estadoLibre = AVANZANDO_NORMAL;
+static unsigned long tiempoEstadoLibre = 0;
+
 // Estado inicial de la máquina de evasión
 EstadoEvasion estadoActual = SIGUIENDO_LINEA;
 static unsigned long tiempoEstado = 0;
@@ -158,6 +172,85 @@ void modoAutonomo() {
         estadoActual = GIRANDO_IZQUIERDA;
         tiempoEstado = ahora;
         Serial.println("Timeout buscando linea, girando mas...");
+      }
+      break;
+  }
+}
+
+// Máquina de estados: evade obstáculos de manera independiente (avanza siempre)
+void modoEvasorLibre() {
+  unsigned long ahora = millis();
+
+  switch (estadoLibre) {
+    case AVANZANDO_NORMAL: {
+      apagarIntermitentes();
+      movDel(); // Avanzando constantemente
+      int dist = medirDistancia();
+      if (dist <= DIST_INT) {
+        encenderIntermitentes();
+        estadoLibre = ADVERTENCIA_OBSTACULO;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Obstaculo a 30 cm! Intermitentes encendidas.");
+      }
+      break;
+    }
+
+    case ADVERTENCIA_OBSTACULO: {
+      movDel(); // Sigue avanzando
+      int dist = medirDistancia();
+      if (dist <= DIST_OBSTACULO) {
+        apagarIntermitentes();
+        detenerMotores();
+        estadoLibre = FRENADO;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Obstaculo a 15 cm! Frenando...");
+      } else if (dist > DIST_INT) {
+        apagarIntermitentes();
+        estadoLibre = AVANZANDO_NORMAL;
+        Serial.println("Modo Evasor: Obstaculo alejado.");
+      } else {
+        encenderIntermitentes();
+      }
+      break;
+    }
+
+    case FRENADO:
+      detenerMotores();
+      if (ahora - tiempoEstadoLibre >= 200) {
+        estadoLibre = GIRANDO_DER;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Girando a la derecha...");
+      }
+      break;
+
+    case GIRANDO_DER:
+      movDer();
+      parpadearIntermitenteDer();
+      if (ahora - tiempoEstadoLibre >= 400) {
+        apagarIntermitentes();
+        estadoLibre = EVADIENDO_FRENTE;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Avanzando para evadir...");
+      }
+      break;
+
+    case EVADIENDO_FRENTE:
+      movDel();
+      if (ahora - tiempoEstadoLibre >= 500) {
+        estadoLibre = GIRANDO_IZQ;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Girando a la izquierda...");
+      }
+      break;
+
+    case GIRANDO_IZQ:
+      movIzq();
+      parpadearIntermitenteIzq();
+      if (ahora - tiempoEstadoLibre >= 400) {
+        apagarIntermitentes();
+        estadoLibre = AVANZANDO_NORMAL;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Reanudando avance libre.");
       }
       break;
   }

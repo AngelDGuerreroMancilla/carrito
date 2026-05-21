@@ -68,6 +68,8 @@ void loop(){
     if(estadoActual == SIGUIENDO_LINEA || estadoActual == DETECTADO_INT){
       contrLineas();
     }
+  } else if (modEvasor == 1) {
+    modoEvasorLibre(); // Modo independiente para evitar obstáculos
   }
 
   client.loop();
