@@ -44,14 +44,14 @@ function mover(e) { //funcion que se llama cuando se mueve el canvas
     x = Math.min(Math.max(x, 0), canvas.width); //se limita la paosición de x para que no salga del canvas
     y = Math.min(Math.max(y, 0), canvas.height); //se limita la posicion de Y para que no salga del canvas
     
-    const dx = x - centroX; //
-    const dy = y - centroY;
-    const dist = Math.hypot(dx, dy);
-    const maxDist = radioBase - radioStick;
+    const dx = x - centroX; //operacion que calcula la distancia de x desde el centro del joystick
+    const dy = y - centroY; //lo mismo pero con y
+    const dist = Math.hypot(dx, dy);    //operacion que calcula la distancia desde el centro del joystick hasta la posicion actual
+    const maxDist = radioBase - radioStick;    //operacion que calcula la distancia maxima que puede moverse el stick dentro del circulo base
     
-    if (dist > maxDist) {
-        const ang = Math.atan2(dy, dx);
-        stickX = centroX + maxDist * Math.cos(ang);
+    if (dist > maxDist) {   //condicion que limita el movimiento del stick para quee no salga del circulo
+        const ang = Math.atan2(dy, dx); //operacion que calcula el angulo desde el centro del joystick hasta la posicion actual
+        stickX = centroX + maxDist * Math.cos(ang); //
         stickY = centroY + maxDist * Math.sin(ang);
     } else {
         stickX = x;
