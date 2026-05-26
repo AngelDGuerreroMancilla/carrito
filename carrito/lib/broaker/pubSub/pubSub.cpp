@@ -6,6 +6,7 @@
 #include "calibrar.h"
 #include "broaker.h" 
 #include "seguidor.h"
+#include "supersonico.h"
 
 bool separarTextoComa(String mensaje, double &valor1, double &valor2) {
     int indiceComa = mensaje.indexOf(",");
@@ -36,6 +37,11 @@ void recibirAlerta(char* topic, byte* payload, unsigned int length) {
     }
     else if (strcmp(topic, "mi_carrito/esp32/seguidorLineas") == 0) {
         modSegLin = msj.toInt();
+        if (modSegLin) modEvasor = false;
+    }
+    else if (strcmp(topic, "mi_carrito/esp32/evasion") == 0) {
+        modEvasor = msj.toInt();
+        if (modEvasor) modSegLin = false;
     }
     else if (strcmp(topic, "mi_carrito/esp32/calibracion") == 0) {
         int calibracion = msj.toInt();

@@ -221,6 +221,9 @@ function setModo(m){
   modoActivo.innerText = "Modo " + m;
   envDatos("modo", m.toString());
 
+  envDatos("seguidorLineas", m === 1 ? "1" : "0");
+  envDatos("evasion", m === 2 ? "1" : "0");
+
   panelJoystick.style.display = "none";
   panelMapa.style.display = "none";
 

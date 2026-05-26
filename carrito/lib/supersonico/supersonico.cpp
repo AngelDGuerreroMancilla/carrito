@@ -2,9 +2,26 @@
 #include "motores.h"
 #include "seguidor.h"
 
+// Bandera y estado para el modo evasor libre
+bool modEvasor = false;
+
+enum EstadoEvasorLibre {
+  AVANZANDO_NORMAL,
+  ADVERTENCIA_OBSTACULO,
+  FRENADO,
+  GIRANDO_DER,
+  EVADIENDO_FRENTE,
+  GIRANDO_IZQ
+};
+EstadoEvasorLibre estadoLibre = AVANZANDO_NORMAL;
+static unsigned long tiempoEstadoLibre = 0;
+
 // Estado inicial de la máquina de evasión
 EstadoEvasion estadoActual = SIGUIENDO_LINEA;
 static unsigned long tiempoEstado = 0;
+
+static unsigned long tiempoParpadeo = 0;
+static bool estadoLedParpadeo = false;
 
 // Mide la distancia en cm con el sensor ultrasónico
 int medirDistancia() {
@@ -21,6 +38,37 @@ int medirDistancia() {
 // Detiene los 2 motores (freno de emergencia por obstáculo)
 void detenerMotores() {
   apagar();
+}
+
+// ── Control de intermitentes ────────────────────────────────────────────────
+void encenderIntermitentes() {
+  digitalWrite(ledDer, HIGH);
+  digitalWrite(ledIzq, HIGH);
+}
+
+void apagarIntermitentes() {
+  digitalWrite(ledDer, LOW);
+  digitalWrite(ledIzq, LOW);
+}
+
+void parpadearIntermitenteDer() {
+  unsigned long ahora = millis();
+  if (ahora - tiempoParpadeo >= INTERVALO_PARPADEO) {
+    tiempoParpadeo = ahora;
+    estadoLedParpadeo = !estadoLedParpadeo;
+    digitalWrite(ledDer, estadoLedParpadeo ? HIGH : LOW);
+    digitalWrite(ledIzq, LOW);
+  }
+}
+
+void parpadearIntermitenteIzq() {
+  unsigned long ahora = millis();
+  if (ahora - tiempoParpadeo >= INTERVALO_PARPADEO) {
+    tiempoParpadeo = ahora;
+    estadoLedParpadeo = !estadoLedParpadeo;
+    digitalWrite(ledIzq, estadoLedParpadeo ? HIGH : LOW);
+    digitalWrite(ledDer, LOW);
+  }
 }
 
 // Retorna true si cualquier sensor IR detecta la línea
@@ -41,14 +89,32 @@ void modoAutonomo() {
 
   switch (estadoActual) {
     case SIGUIENDO_LINEA: {
+      apagarIntermitentes();
+      int dist = medirDistancia();
+      if (dist <= DIST_INT) {
+        encenderIntermitentes();
+        estadoActual = DETECTADO_INT;
+        tiempoEstado = ahora;
+        Serial.println("Obstaculo a 30 cm! Intermitentes encendidas.");
+      }
+      break;
+    }
+
+    case DETECTADO_INT: {
       int dist = medirDistancia();
       if (dist <= DIST_OBSTACULO) {
+        apagarIntermitentes();
         detenerMotores();
         estadoActual = DETENIDO;
         tiempoEstado = ahora;
-        Serial.println("Obstaculo detectado! Deteniendo...");
+        Serial.println("Obstaculo a 15 cm! Frenando...");
+      } else if (dist > DIST_INT) {
+        apagarIntermitentes();
+        estadoActual = SIGUIENDO_LINEA;
+        Serial.println("Obstaculo alejado. Reanudando linea.");
+      } else {
+        encenderIntermitentes();
       }
-      // El seguimiento de línea lo gestiona contrLineas() en main.cpp
       break;
     }
 
@@ -57,13 +123,17 @@ void modoAutonomo() {
       if (ahora - tiempoEstado >= 200) {
         estadoActual = GIRANDO_DERECHA;
         tiempoEstado = ahora;
+        estadoLedParpadeo = false;  // reinicia parpadeo
+        tiempoParpadeo = ahora;
         Serial.println("Girando a la derecha...");
       }
       break;
 
     case GIRANDO_DERECHA:
       movDer();
+      parpadearIntermitenteDer();
       if (ahora - tiempoEstado >= 400) {
+        apagarIntermitentes();
         estadoActual = AVANZANDO;
         tiempoEstado = ahora;
         Serial.println("Avanzando para pasar obstaculo...");
@@ -75,13 +145,17 @@ void modoAutonomo() {
       if (ahora - tiempoEstado >= 500) {
         estadoActual = GIRANDO_IZQUIERDA;
         tiempoEstado = ahora;
+        estadoLedParpadeo = false;  // reinicia parpadeo
+        tiempoParpadeo = ahora;
         Serial.println("Girando a la izquierda...");
       }
       break;
 
     case GIRANDO_IZQUIERDA:
       movIzq();
+      parpadearIntermitenteIzq();
       if (ahora - tiempoEstado >= 400) {
+        apagarIntermitentes();
         estadoActual = BUSCANDO_LINEA;
         tiempoEstado = ahora;
         Serial.println("Buscando linea...");
@@ -98,6 +172,85 @@ void modoAutonomo() {
         estadoActual = GIRANDO_IZQUIERDA;
         tiempoEstado = ahora;
         Serial.println("Timeout buscando linea, girando mas...");
+      }
+      break;
+  }
+}
+
+// Máquina de estados: evade obstáculos de manera independiente (avanza siempre)
+void modoEvasorLibre() {
+  unsigned long ahora = millis();
+
+  switch (estadoLibre) {
+    case AVANZANDO_NORMAL: {
+      apagarIntermitentes();
+      movDel(); // Avanzando constantemente
+      int dist = medirDistancia();
+      if (dist <= DIST_INT) {
+        encenderIntermitentes();
+        estadoLibre = ADVERTENCIA_OBSTACULO;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Obstaculo a 30 cm! Intermitentes encendidas.");
+      }
+      break;
+    }
+
+    case ADVERTENCIA_OBSTACULO: {
+      movDel(); // Sigue avanzando
+      int dist = medirDistancia();
+      if (dist <= DIST_OBSTACULO) {
+        apagarIntermitentes();
+        detenerMotores();
+        estadoLibre = FRENADO;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Obstaculo a 15 cm! Frenando...");
+      } else if (dist > DIST_INT) {
+        apagarIntermitentes();
+        estadoLibre = AVANZANDO_NORMAL;
+        Serial.println("Modo Evasor: Obstaculo alejado.");
+      } else {
+        encenderIntermitentes();
+      }
+      break;
+    }
+
+    case FRENADO:
+      detenerMotores();
+      if (ahora - tiempoEstadoLibre >= 200) {
+        estadoLibre = GIRANDO_DER;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Girando a la derecha...");
+      }
+      break;
+
+    case GIRANDO_DER:
+      movDer();
+      parpadearIntermitenteDer();
+      if (ahora - tiempoEstadoLibre >= 400) {
+        apagarIntermitentes();
+        estadoLibre = EVADIENDO_FRENTE;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Avanzando para evadir...");
+      }
+      break;
+
+    case EVADIENDO_FRENTE:
+      movDel();
+      if (ahora - tiempoEstadoLibre >= 500) {
+        estadoLibre = GIRANDO_IZQ;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Girando a la izquierda...");
+      }
+      break;
+
+    case GIRANDO_IZQ:
+      movIzq();
+      parpadearIntermitenteIzq();
+      if (ahora - tiempoEstadoLibre >= 400) {
+        apagarIntermitentes();
+        estadoLibre = AVANZANDO_NORMAL;
+        tiempoEstadoLibre = ahora;
+        Serial.println("Modo Evasor: Reanudando avance libre.");
       }
       break;
   }
