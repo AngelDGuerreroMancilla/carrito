@@ -11,6 +11,7 @@ let activo = false; //indica si el joystick se esta moviendo o no
 let stickX = centroX;   //coordenada X actual del stick
 let stickY = centroY;   //coordenada Y actual del stick
 let ultimoEnvio = 0;    //control de tiempo para evitar saturar el broker MQTT con muchos mensajes
+   
 
 function dibujar() {    //limpiar el canvas y dibujar el joystick
     ctx.clearRect(0, 0, canvas.width, canvas.height);   //limpiar el canvas
