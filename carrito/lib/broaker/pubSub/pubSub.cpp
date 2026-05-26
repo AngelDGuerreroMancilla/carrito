@@ -7,6 +7,8 @@
 #include "broaker.h" 
 #include "seguidor.h"
 
+bool gpsIsActive = false;
+
 bool separarTextoComa(String mensaje, double &valor1, double &valor2) {
     int indiceComa = mensaje.indexOf(",");
     if (indiceComa > 0) {

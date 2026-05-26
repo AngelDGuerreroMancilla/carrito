@@ -8,10 +8,12 @@
 #define RXD2 16
 #define TXD2 17
 
+
 extern TinyGPSPlus gps;
+extern double lat;
+extern double lng;
 extern double latDestino;
 extern double lngDestino;
-extern bool gpsIsActive;
 
 
 
