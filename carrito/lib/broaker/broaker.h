@@ -7,7 +7,7 @@
 
 extern PubSubClient client;
 extern const char* mqttServer;
-
+extern bool gpsIsActive;
 void setup_wifi();
 void reconnect();
 void envSig(String topic, String sig);

@@ -71,6 +71,7 @@ void recibirAlerta(char* topic, byte* payload, unsigned int length) {
     }
     else if (strcmp(topic, "mi_carrito/esp32/dest") == 0) {
         if (separarTextoComa(msj, latDestino, lngDestino)) {
+            hayDestino = true;
             Serial.print("Nuevo destino fijado: ");
             Serial.print(latDestino, 6);
             Serial.print(", ");

@@ -14,7 +14,7 @@ extern double lat;
 extern double lng;
 extern double latDestino;
 extern double lngDestino;
-
+extern bool hayDestino;
 
 
 void estadoGps();

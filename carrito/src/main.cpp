@@ -61,8 +61,8 @@ void loop(){
     
     if (gps.location.isUpdated()) {
       envPos(); 
-      direccionamiento();
     }
+   direccionamiento(); 
   }
   
   // 3. Modo Seguidor de Línea

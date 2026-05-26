@@ -10,9 +10,9 @@ int pwmD = velocidadBase;
 
 
 void movDel(){
-  analogWrite(drvIn1,3000);
+  analogWrite(drvIn1,1500);
   analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,3000);
+  analogWrite(drvIn3,1500);
   analogWrite(drvIn4,0); 
 }
 void movAtras(){
@@ -24,11 +24,11 @@ void movAtras(){
 void movIzq(){
   analogWrite(drvIn1,0);
   analogWrite(drvIn2, 0);
-  analogWrite(drvIn3,3000);
+  analogWrite(drvIn3,1500);
   analogWrite(drvIn4,0); 
 }
 void movDer(){
-  analogWrite(drvIn1,3000);
+  analogWrite(drvIn1,1500);
   analogWrite(drvIn2, 0);
   analogWrite(drvIn3,0);
   analogWrite(drvIn4,0); 
