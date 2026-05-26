@@ -48,7 +48,7 @@ btnCalib.addEventListener("click", () =>{
     
 })
 
-/*btnSegLin.addEventListener("click",() =>{
+btnSegLin.addEventListener("click",() =>{
 
     if(btnSegLin.textContent =="Desactivado"){
         btnSegLin.innerText="Activado";
@@ -60,4 +60,4 @@ btnCalib.addEventListener("click", () =>{
         envDatos("seguidorLineas", "0");
     console.log("seguidor de lineas DESACTIVADO");
     }
-})*/
+})

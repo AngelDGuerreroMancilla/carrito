@@ -48,32 +48,38 @@ void setup(){
 
 
 void loop(){
+  // 1. Mantener la conexión MQTT activa
   if(!client.connected()){
     reconnect();
   }
-  if(gpsIsActive) {
-    estadoGps();
-    while(Serial2.available() > 0) {
-      if (gps.encode(Serial2.read())) {
-        envPos(); 
-        direccionamiento();
-      }
-    }
+  client.loop();
+
+  // 2. LEER GPS CONSTANTEMENTE (Siempre debe vaciar el buffer serial)
+  while(Serial2.available() > 0) {
+    gps.encode(Serial2.read());
   }
 
-
-  if(modSegLin == 1){
+  // 3. MÁQUINA DE ESTADOS / CONTROL DE MODOS
+  if (gpsIsActive == 1) {
+    estadoGps(); // Reporta satélites cada 2 segundos
+    envPos();    // Envía posición MQTT solo si se actualizó el GPS
+    
+    // Solo permitimos que el GPS controle motores si no están activos los otros modos
+    if (modSegLin == 0 && modEvasor == 0) {
+      direccionamiento(); 
+    }
+  } 
+  else if (modSegLin == 1) {
     modoAutonomo();   // gestiona distancias e intermitentes
-    // contrLineas() solo corre cuando no hay maniobra de evasión activa
     if(estadoActual == SIGUIENDO_LINEA || estadoActual == DETECTADO_INT){
       contrLineas();
     }
-  } else if (modEvasor == 1) {
+  } 
+  else if (modEvasor == 1) {
     modoEvasorLibre(); // Modo independiente para evitar obstáculos
   }
-
-  client.loop();
-  long ahora = millis();
-
-  
+  else {
+    // Si ningún modo está activo, asegurar que el vehículo esté detenido
+    apagar(); 
+  }
 }

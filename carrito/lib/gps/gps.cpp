@@ -32,14 +32,12 @@ void estadoGps() {
 }
 
 void envPos(){
+  // Al estar fuera del while serial, esto garantiza que solo enviará datos 
+  // por MQTT una vez por segundo (cuando el GPS realmente cambie de posición)
   if(gps.location.isValid() && gps.location.isUpdated()){
-
     lat = gps.location.lat();
     lng = gps.location.lng();
-        
-    Serial.print("Latitud: "); Serial.println(lat, 6);
-    Serial.print("Longitud: "); Serial.println(lng, 6);
-        
+    
     String latEnv = String(lat, 6);
     String lngEnv = String(lng, 6);
       
@@ -57,7 +55,7 @@ void direccionamiento(){
   double dist=gps.distanceBetween(lat,lng,latDestino,lngDestino);
 
 
-  while(dist>=2){
+  if(dist>=2){
     movDel();
     Serial.println("gps mov adelante");
     
@@ -71,12 +69,12 @@ void direccionamiento(){
   }
   
 
-/*   double gradDes= gps.courseTo(lat,lng,latDestino,lngDestino);
+  double gradDes= gps.courseTo(lat,lng,latDestino,lngDestino);
 
   double gradAct= gps.course.deg(); 
- */
+ 
 
-/*   if (dist<=2 ){
+  if (dist<=2 ){
     apagar();
     Serial.println("llegada a objetivo, esta a menos de 2M");
     latDestino=0.0;
@@ -104,6 +102,6 @@ void direccionamiento(){
   }else {
     movIzq();
     Serial.println("gps mov izquierda");
-  } */
+  } 
 
 }
