@@ -45,28 +45,39 @@ void setup(){
 
 
 void loop(){
+  // 1. Mantener conexión MQTT
   if(!client.connected()){
     reconnect();
   }
+  client.loop(); // Es buena práctica poner el loop de MQTT al principio o justo después del reconnect
+
+  // 2. Modo GPS
   if(gpsIsActive) {
     estadoGps();
+    
     while(Serial2.available() > 0) {
-      if (gps.encode(Serial2.read())) {
-       
-        envPos(); 
-        
-        direccionamiento();
-
-      }
+      gps.encode(Serial2.read());
+    }
+    
+    if (gps.location.isUpdated()) {
+      envPos(); 
+      direccionamiento();
     }
   }
   
-
-  if(modSegLin== 1){
+  // 3. Modo Seguidor de Línea
+  if(modSegLin == 1){
       contrLineas();
   }
-  client.loop();
-  long ahora=millis();
 
-  
+  // 4. Lectura de Ultrasonido (No bloqueante)
+  long ahora = millis();
+  if (ahora - ultima_medicion > 100) { // Leer cada 100ms
+    ultima_medicion = ahora;
+    
+    // Aquí iría tu lógica de lectura del trigger y echo...
+    // distancia = calcularDistancia();
+    
+    // if (distancia < 15) { apagar(); } // Paro de emergencia
+  }
 }

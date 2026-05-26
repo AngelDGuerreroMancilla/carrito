@@ -50,60 +50,44 @@ void envPos(){
 
 void direccionamiento(){
 
+  // Si no hay destino o el GPS no tiene señal, salimos de la función
   if (latDestino == 0.0 || !gps.location.isValid()) {
     return; 
   }
 
-  double dist=gps.distanceBetween(lat,lng,latDestino,lngDestino);
+  // 1. Calculamos la distancia
+  double dist = gps.distanceBetween(lat, lng, latDestino, lngDestino);
 
-
-  while(dist>=2){
-    movDel();
-    Serial.println("gps mov adelante");
-    
-
-  }
-  if(dist<2){
+  // 2. Verificamos si ya llegamos (¡Prioridad máxima!)
+  if (dist < 2.0) {
     apagar();
-    Serial.println("llegada a objetivo, esta a menos de 2M");
-    latDestino=0.0;
-    return;
-  }
-  
-
-/*   double gradDes= gps.courseTo(lat,lng,latDestino,lngDestino);
-
-  double gradAct= gps.course.deg(); 
- */
-
-/*   if (dist<=2 ){
-    apagar();
-    Serial.println("llegada a objetivo, esta a menos de 2M");
-    latDestino=0.0;
-    return;
+    Serial.println("Llegada a objetivo, está a menos de 2M");
+    latDestino = 0.0; // Reseteamos el destino
+    return;           // Salimos para no seguir calculando giros
   }
 
-  double errorGiro= gradDes-gradAct;
+  // 3. Si no hemos llegado, calculamos hacia dónde mirar
+  double gradDes = gps.courseTo(lat, lng, latDestino, lngDestino);
+  double gradAct = gps.course.deg(); 
 
+  double errorGiro = gradDes - gradAct;
 
-  if (errorGiro > 180){
+  // 4. Normalizamos el error (para que siempre esté entre -180 y 180 grados)
+  if (errorGiro > 180) {
     errorGiro -= 360;
-  }
-  if(errorGiro < -180){
+  } else if (errorGiro < -180) {
     errorGiro += 360;
   }
 
-  if(abs(errorGiro)<15){
+  // 5. Tomamos la decisión de movimiento
+  if (abs(errorGiro) < 15) {
     movDel();
-    Serial.println("gps mov adelante");
-
-  }else if(errorGiro>0){
+    Serial.println("GPS: En rumbo correcto, mov adelante");
+  } else if (errorGiro > 0) {
     movDer();
-    Serial.println("gps mov derecha");
-
-  }else {
+    Serial.println("GPS: Corrigiendo a la derecha");
+  } else {
     movIzq();
-    Serial.println("gps mov izquierda");
-  } */
-
+    Serial.println("GPS: Corrigiendo a la izquierda");
+  } 
 }
