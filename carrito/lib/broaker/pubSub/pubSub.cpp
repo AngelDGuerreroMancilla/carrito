@@ -25,6 +25,21 @@ void recibirAlerta(char* topic, byte* payload, unsigned int length) {
     Serial.println(topic);
     
     String msj = "";
+
+    if(strcmp(topic, "mi_carrito/esp32/claxon") == 0) {
+  if(msj.toInt() == 1) {
+    tocarClaxon();
+  }
+}
+
+// Intermitentes
+if(strcmp(topic, "mi_carrito/esp32/intermitentes") == 0) {
+  intermitentesActivo = msj.toInt();
+  if(!intermitentesActivo) {
+    apagarDireccionales();
+  }
+}
+
     for (int i = 0; i < length; i++) {
         msj += (char)payload[i];
     }

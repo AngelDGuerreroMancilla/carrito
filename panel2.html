@@ -106,39 +106,48 @@
 
       <!-- BOTONES DE CONTROL -->
       <div class="row mt-4 g-2">
-        <div class="col-6">
-          <button class="btn btn-danger w-100" id="btnClaxon">Claxon</button>
+        <div class="col-4">
+          <button class="btn btn-danger w-100" id="btnClaxon">CLaxon</button>
         </div>
-        <div class="col-6">
-          <button class="btn btn-warning w-100" id="btnIntermitentes"> Intermitentes OFF</button>
+        <div class="col-4">
+          <button class="btn btn-warning w-100" id="btnLuces">Luces OFF</button>
+        </div>
+        <div class="col-4">
+          <button class="btn btn-info w-100" id="btnDireccional">Direccional OFF</button>
         </div>
       </div>
     </div>
 
     <div id="panelMapa" style="display:none;">
   
-      <div id="mapa" style="height:300px;"></div>
+  <div id="mapa" style="height:300px;"></div>
 
-      <div class="mt-3">
-        <h5>Latitud destino</h5>
-        <div id="txt-lat-dest">--</div>
-        <h5>Longitud destino</h5>
-        <div id="txt-lng-dest">--</div>
-        <hr>
-        <h5>Latitud actual</h5>
-        <div id="txt-lat">--</div>
-        <h5>Longitud actual</h5>
-        <div id="txt-lng">--</div>
-        <h5>Satélites</h5>
-        <div id="satel">--</div>
-        <h5>Estado GPS</h5>
-        <div id="estado">Sin datos</div>
-      </div>
+  <div class="mt-3">
+    <h5>Latitud destino</h5>
+    <div id="txt-lat-dest">--</div>
 
-    </div>
+    <h5>Longitud destino</h5>
+    <div id="txt-lng-dest">--</div>
 
+    <hr>
+
+    <h5>Latitud actual</h5>
+    <div id="txt-lat">--</div>
+
+    <h5>Longitud actual</h5>
+    <div id="txt-lng">--</div>
+
+    <h5>Satélites</h5>
+    <div id="satel">--</div>
+
+    <h5>Estado GPS</h5>
+    <div id="estado">Sin datos</div>
   </div>
+
 </div>
+
+
+
 
 <!-- CONTROL PID -->
 <div class="card shadow mt-4">
@@ -159,6 +168,7 @@
       <label>Ki</label>
       <input type="range" id="rangoKi" class="form-range" min="0" max="1" step="0.001">
       <span id="spanKi">0</span>
+
     </div>
 
     <div>
@@ -174,7 +184,6 @@
     </div>
 
     <button class="btn btn-secondary mt-2" id="btnCalib">Calibrar</button>
-    <button class="btn btn-secondary mt-2" id="btnSegLin">Activado</button>
   </div>
 </div>
 
@@ -189,20 +198,7 @@
 </div>
 
 <script>
-  let panelMapa = document.getElementById("panelMapa")
-  let panelJoystick = document.getElementById("panelJoystick")
-  let tituloPanel = document.getElementById("tituloPanel")
-  let modoActivo = document.getElementById("modoActivo")
-  let estadoMQTT = document.getElementById("estadoMQTT")
-  let distancia = document.getElementById("distancia")
-  let alerta = document.getElementById("alerta")
-  let btnCalib = document.getElementById("btnCalib")
-  let btnActGps = document.getElementById("btnActGps")
-  let rangoKp = document.getElementById("rangoKp")
-  let rangoKd = document.getElementById("rangoKd")
-  let rangoKi = document.getElementById("rangoKi")
-  let rangoVelBas = document.getElementById("rangoVelBas")
-  let rangoVelMax = document.getElementById("rangoVelMax")
+  let panelMapa= document.getElementById("panelMapa")
 
 /* ========= MQTT ========= */
 const client = new Paho.MQTT.Client("broker.hivemq.com", 8884, "web_" + Math.random());
@@ -215,13 +211,13 @@ client.onMessageArrived = (msg) => {
   if(msg.destinationName === "mi_carrito/web/sensor"){
     let dist = Math.ceil(parseInt(msg.payloadString) * 0.0343 / 2);
     distancia.innerText = dist + " cm";
-    alerta.innerText = dist < 20 ? "Obstáculo cerca" : "Sin obstáculos";
+    alerta.innerText = dist < 20 ? "⚠️ Obstáculo cerca" : "Sin obstáculos";
   }
 };
 
 client.connect({
-  useSSL: true,
-  onSuccess: () => {
+  useSSL:true,
+  onSuccess: ()=>{
     estadoMQTT.innerText = "Conectado";
     client.subscribe("mi_carrito/web/sensor");
   }
@@ -238,9 +234,6 @@ function setModo(m){
   modoActivo.innerText = "Modo " + m;
   envDatos("modo", m.toString());
 
-  envDatos("seguidorLineas", m === 1 ? "1" : "0");
-  envDatos("evasion", m === 2 ? "1" : "0");
-
   panelJoystick.style.display = "none";
   panelMapa.style.display = "none";
 
@@ -253,80 +246,87 @@ function setModo(m){
     panelMapa.style.display = "block";
     tituloPanel.innerText = "Mapa GPS";
 
-    setTimeout(() => {
-      if(typeof map !== 'undefined') map.invalidateSize();
-    }, 200);
+    setTimeout(()=>{
+      map.invalidateSize();
+    },200);
   }
 }
 
 /* ========= BOTONES ========= */
-btnCalib.onclick = () => envDatos("calibracion", "1");
+btnCalib.onclick = ()=> envDatos("calibracion","1");
 
-btnActGps.onclick = () => {
+btnActGps.onclick = ()=>{
   let activo = btnActGps.innerText.includes("Activar");
-  envDatos("actGps", activo ? "1" : "0");
-  btnActGps.innerText = activo ? "Desactivar GPS" : "Activar GPS";
+  envDatos("actGps", activo ? "1":"0");
+  btnActGps.innerText = activo ? "Desactivar GPS":"Activar GPS";
 };
 
 /* ========= SLIDERS ========= */
-rangoKp.oninput = () => {
+rangoKp.oninput = ()=> {
   envDatos("kp", rangoKp.value);
   document.getElementById("spanKp").innerText = rangoKp.value;
+  
 };
-rangoKd.oninput = () => {
+rangoKd.oninput = ()=> {
   envDatos("kd", rangoKd.value);
   document.getElementById("spanKd").innerText = rangoKd.value;
 };
-rangoKi.oninput = () => {
+rangoKi.oninput = ()=> {
   envDatos("ki", rangoKi.value);
   document.getElementById("spanKi").innerText = rangoKi.value;
 };
-rangoVelBas.oninput = () => {
+rangoVelBas.oninput = ()=> {
   envDatos("velBas", rangoVelBas.value);
   document.getElementById("spanVelBas").innerText = rangoVelBas.value;
 };
-rangoVelMax.oninput = () => {
+rangoVelMax.oninput = ()=> {
   envDatos("velMax", rangoVelMax.value);
   document.getElementById("spanVelMax").innerText = rangoVelMax.value;
 };
 
-/* ========= BOTONES LEDS ========= */
+/* ========= BOTONES DEL JOYSTICK ========= */
 const btnClaxon = document.getElementById("btnClaxon");
-const btnIntermitentes = document.getElementById("btnIntermitentes");
+const btnLuces = document.getElementById("btnLuces");
+const btnDireccional = document.getElementById("btnDireccional");
 
-let intermitentesActivo = false;
+btnClaxon.onclick = () => {
+  envDatos("claxon", "1");
+  setTimeout(() => { envDatos("claxon", "0"); }, 500);
+};
 
-if(btnClaxon) {
-  btnClaxon.onclick = () => {
-    envDatos("claxon", "1");
-    setTimeout(() => { envDatos("claxon", "0"); }, 500);
-  };
-}
+btnLuces.onclick = () => {
+  let estado = btnLuces.innerText.includes("OFF") ? "ON" : "OFF";
+  btnLuces.innerText = estado === "ON" ? " Luces ON" : " Luces OFF";
+  if(estado === "ON"){
+    btnLuces.classList.remove("btn-warning");
+    btnLuces.classList.add("btn-success");
+  } else {
+    btnLuces.classList.remove("btn-success");
+    btnLuces.classList.add("btn-warning");
+  }
+  envDatos("luces", estado === "ON" ? "1" : "0");
+};
 
-if(btnIntermitentes) {
-  btnIntermitentes.onclick = () => {
-    intermitentesActivo = !intermitentesActivo;
-    if(intermitentesActivo) {
-      btnIntermitentes.innerText = "Intermitentes ON";
-      btnIntermitentes.classList.remove("btn-warning");
-      btnIntermitentes.classList.add("btn-danger");
-      envDatos("intermitentes", "1");
-    } else {
-      btnIntermitentes.innerText = "Intermitentes OFF";
-      btnIntermitentes.classList.remove("btn-danger");
-      btnIntermitentes.classList.add("btn-warning");
-      envDatos("intermitentes", "0");
-    }
-  };
-}
+btnDireccional.onclick = () => {
+  let estado = btnDireccional.innerText.includes("OFF") ? "ON" : "OFF";
+  btnDireccional.innerText = estado === "ON" ? " Direccional ON" : " Direccional OFF";
+  if(estado === "ON"){
+    btnDireccional.classList.remove("btn-info");
+    btnDireccional.classList.add("btn-primary");
+  } else {
+    btnDireccional.classList.remove("btn-primary");
+    btnDireccional.classList.add("btn-info");
+  }
+  envDatos("direccional", estado === "ON" ? "1" : "0");
+};
 
-// Iniciar en modo joystick
-setModo(3);
 </script>
 
 <script src="./modoManual/joysticktest.js"></script>
 <script src="openStreetMap/seguimiento.js"></script>
+
 <script src="seguimiento/parametros.js"></script>
+
 
 </body>
 </html>

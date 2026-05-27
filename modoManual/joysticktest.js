@@ -51,7 +51,7 @@ function mover(e) { //funcion que se llama cuando se mueve el canvas
     
     if (dist > maxDist) {   //condicion que limita el movimiento del stick para quee no salga del circulo
         const ang = Math.atan2(dy, dx); //operacion que calcula el angulo desde el centro del joystick hasta la posicion actual
-        stickX = centroX + maxDist * Math.cos(ang); //
+        stickX = centroX + maxDist * Math.cos(ang); 
         stickY = centroY + maxDist * Math.sin(ang);
     } else {
         stickX = x;

@@ -1,6 +1,7 @@
 #ifndef motores_h
 #define motores_h
 #include "motores.h"
+#include "leds.h"
 volatile unsigned int pulsosIzq = 0;
 volatile unsigned int pulsosDer = 0;
 int velocidadBase = 150;
@@ -93,7 +94,8 @@ void contrlJoy(int ejeX, int ejeY){
     analogWrite(drvIn3, 0);
     analogWrite(drvIn4, 0);
   }
-
+  
+   controlarDireccionales(ejeX);
 
 }
 

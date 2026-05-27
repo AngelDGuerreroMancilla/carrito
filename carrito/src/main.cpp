@@ -9,11 +9,14 @@
 #include "calibrar.h"
 #include "seguidor.h"
 #include "pubSub/pubSub.h"
-#include "supersonico.h"   // modoAutonomo(), estadoActual, DETECTADO_INT, LEDs
+#include "supersonico.h"
+#include "leds.h"  
+// modoAutonomo(), estadoActual, DETECTADO_INT, LEDs
 
 // unsigned long duracion;
 int distancia;
 long ultima_medicion=0;
+extern bool intermitentesActivo;
 
 
 
@@ -32,6 +35,11 @@ void setup(){
   pinMode(drvIn2, OUTPUT);
   pinMode(drvIn3, OUTPUT);
   pinMode(drvIn4, OUTPUT);
+
+  pinMode(LED_IZQ, OUTPUT);
+  pinMode(LED_DER, OUTPUT);
+  digitalWrite(LED_IZQ, LOW);
+  digitalWrite(LED_DER, LOW);
 
 
   // LEDs intermitentes
@@ -52,11 +60,23 @@ void loop(){
   if(!client.connected()){
     reconnect();
   }
+<<<<<<< HEAD
   client.loop();
 
   // 2. LEER GPS CONSTANTEMENTE (Siempre debe vaciar el buffer serial)
   while(Serial2.available() > 0) {
     gps.encode(Serial2.read());
+=======
+  actualizarLeds();
+  
+  if(gpsIsActive) {
+    estadoGps();
+    while(Serial2.available() > 0) {
+      if (gps.encode(Serial2.read())) {
+        envPos(); 
+        direccionamiento();
+      }
+    }
   }
 
   // 3. MÁQUINA DE ESTADOS / CONTROL DE MODOS
