@@ -43,8 +43,6 @@ void setup(){
 
 
   // LEDs intermitentes
-  pinMode(ledDer, OUTPUT);  digitalWrite(ledDer, LOW);
-  pinMode(ledIzq, OUTPUT);  digitalWrite(ledIzq, LOW);
   apagar();
 
   calibrar();
@@ -60,13 +58,13 @@ void loop(){
   if(!client.connected()){
     reconnect();
   }
-<<<<<<< HEAD
+
   client.loop();
 
   // 2. LEER GPS CONSTANTEMENTE (Siempre debe vaciar el buffer serial)
   while(Serial2.available() > 0) {
     gps.encode(Serial2.read());
-=======
+  }
   actualizarLeds();
   
   if(gpsIsActive) {
@@ -102,5 +100,4 @@ void loop(){
     // Si ningún modo está activo, asegurar que el vehículo esté detenido
     apagar(); 
   }
-}
 }
